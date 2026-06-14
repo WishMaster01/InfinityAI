@@ -1,5 +1,5 @@
-// middleware/auth.js
 import { getAuth, clerkClient } from "@clerk/express";
+import { upsertUserFromClerk } from "../utils/subscription.js";
 
 export const auth = async (req, res, next) => {
   try {
@@ -9,27 +9,17 @@ export const auth = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const user = await clerkClient.users.getUser(userId);
+    const clerkUser = await clerkClient.users.getUser(userId);
+    const user = await upsertUserFromClerk(clerkUser);
 
-    const plan = user.publicMetadata?.plan === "premium" ? "premium" : "free";
-    req.plan = plan;
-
-    if (plan === "free") {
-      const usage = user.privateMetadata?.free_usage ?? 0;
-      if (user.privateMetadata?.free_usage === undefined) {
-        await clerkClient.users.updateUserMetadata(userId, {
-          privateMetadata: { free_usage: 0 },
-        });
-      }
-      req.free_usage = usage;
-    } else {
-      req.free_usage = null;
-    }
     req.userId = userId;
+    req.user = user;
+    req.plan = user.currentPlan;
+    req.free_usage = user.usedCredits;
 
     next();
   } catch (error) {
-    console.error("❌ Auth Middleware Error:", error);
+    console.error("Auth middleware error:", error);
     res.status(500).json({
       success: false,
       message: "Authentication failed: " + error.message,

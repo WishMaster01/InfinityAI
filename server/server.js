@@ -6,6 +6,9 @@ import { clerkMiddleware } from "@clerk/express";
 import aiRouter from "./routes/aiRoutes.js";
 import connectCloudinary from "./configs/cloudinary.js";
 import userRouter from "./routes/userRoutes.js";
+import toolRouter from "./routes/toolRoutes.js";
+import billingRouter from "./routes/billingRoutes.js";
+import { stripeWebhook } from "./controllers/billingController.js";
 
 const app = express();
 
@@ -18,7 +21,13 @@ app.use(
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
+);
+
+app.post(
+  "/api/billing/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhook,
 );
 
 app.use(express.json());
@@ -33,6 +42,8 @@ app.get("/", (req, res) => {
 // ✅ Public/Protected routes
 app.use("/api/ai", aiRouter); // requires Clerk token
 app.use("/api/user", userRouter); // requires Clerk token
+app.use("/api/tools", toolRouter);
+app.use("/api/billing", billingRouter);
 
 // ❌ Remove app.use(requireAuth()) globally — control access via `auth.js` middleware per route
 

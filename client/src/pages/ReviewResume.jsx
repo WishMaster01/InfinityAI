@@ -1,60 +1,121 @@
 import { FileText, Sparkles } from "lucide-react";
 import React, { useState } from "react";
+import axios from "axios";
+import { useAuth } from "@clerk/clerk-react";
+import toast from "react-hot-toast";
+import FormattedOutput from "../components/FormattedOutput.jsx";
+import OutputLoader from "../components/OutputLoader.jsx";
 
 const ReviewResume = () => {
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState("");
+  const { getToken } = useAuth();
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setContent("");
+
+    try {
+      const token = await getToken();
+      const formData = new FormData();
+      formData.append("resume", input);
+
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/ai/resume-review`,
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
+
+      if (data.success) {
+        setContent(data.content);
+        toast.success("Resume reviewed.");
+      } else {
+        toast.error(data.message || "Unable to review resume.");
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Unexpected error.");
+    } finally {
+      setLoading(false);
+    }
   };
   return (
-    <div className="h-full overflow-y-scroll p-6 flex items-start flex-wrap gap-4 text-slate-700">
-      {/* Left Column */}
+    <div className="tool-page-grid">
       <form
         onSubmit={onSubmitHandler}
         action=""
-        className="w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200"
+        className="tool-panel"
       >
-        <div className="flex items-center gap-3">
-          <Sparkles className="w-6 h-6 text-[#00DA83]" />
-          <h1 className="text-xl font-semibold">Resume Review</h1>
+        <div className="panel-header">
+          <div className="icon-badge bg-gradient-to-br from-emerald-500 to-teal-500">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
+              Career tool
+            </p>
+            <h1 className="text-xl font-bold">Resume Review</h1>
+          </div>
         </div>
 
-        <p className="mt-6 text-sm font-medium">Upload Resume</p>
+        <label className="field-label" htmlFor="resume-file">
+          Upload Resume
+        </label>
 
         <input
+          id="resume-file"
           onChange={(e) => setInput(e.target.files[0])}
           type="file"
           accept="application/pdf"
-          className="w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300 text-gray-600"
+          className="file-input"
           required
         />
 
-        <p className="text-xs text-gray-500 font-light mt-1">
-          Supports PDF Resume Only
+        <p className="helper-text">
+          {input ? `Selected: ${input.name}` : "Supports PDF resumes only."}
         </p>
 
-        <button className="w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#00DA83] to-[#009BB3] text-white px-4 py-2 mt-6 text-sm rounded-lg cursor-pointer hover:opacity-90 transition-all duration-200">
-          <FileText className="w-5 h-5" />
+        <button disabled={loading} className="gradient-button mt-8">
+          {loading ? (
+            <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+          ) : (
+            <FileText className="h-5 w-5" />
+          )}
           Review Resume
         </button>
       </form>
 
-      {/* Right Column */}
-      <div className="w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200 flex flex-col min-h-96 max-h-[600px]">
-        <div className="flex items-center gap-3">
-          <FileText className="w-6 h-6 text-[#00DA83]" />
-          <h1 className="text-xl font-semibold">Analysis Results</h1>
+      <div className="tool-panel flex min-h-[28rem] flex-col">
+        <div className="panel-header">
+          <div className="icon-badge bg-gradient-to-br from-emerald-500 to-teal-500">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
+              Output
+            </p>
+            <h1 className="text-xl font-bold">Analysis Results</h1>
+          </div>
         </div>
 
-        <hr className="my-8 h-px border-0 bg-gray-300 dark:bg-gray-700" />
+        <hr className="divider-soft" />
 
-        <div className="flex-1 flex justify-center items-center gap-5 text-gray-400">
-          <FileText className="w-9 h-9" />
-          <p className="">
-            Upload a Resume and Click "Review Resume" to get Started
-          </p>
-        </div>
+        {loading ? (
+          <OutputLoader label="Reviewing your resume" />
+        ) : !content ? (
+          <div className="empty-state">
+            <FileText className="h-10 w-10 text-emerald-400" />
+            <p className="text-sm font-semibold">
+              Upload a resume and click Review Resume to get started.
+            </p>
+          </div>
+        ) : (
+          <FormattedOutput content={content} />
+        )}
       </div>
     </div>
   );

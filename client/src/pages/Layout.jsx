@@ -12,39 +12,41 @@ const Layout = () => {
   const { user } = useUser();
 
   return user ? (
-    <div className="flex flex-col items-start justify-start h-screen">
-      <nav className="w-full px-8 min-h-14 flex items-center justify-between border-b border-gray-200">
+    <div className="flex h-screen flex-col items-start justify-start bg-slate-50">
+      <nav className="z-40 flex min-h-20 w-full items-center justify-between border-b border-white/70 bg-white/85 px-4 shadow-lg shadow-blue-100/50 backdrop-blur-2xl sm:px-8">
         <img
-          src={assets.logo1}
-          alt=""
+          src={assets.infinityLogo}
+          alt="InfinityAI"
           onClick={() => navigate("/")}
-          className="w-16 sm:w-24 cursor-pointer"
+          className="h-14 w-auto cursor-pointer object-contain drop-shadow-sm sm:h-16"
         />
 
         {sidebar ? (
           <X
-            className="w-6 h-6 text-gray-600 sm:hidden"
+            className="h-6 w-6 cursor-pointer text-slate-700 sm:hidden"
             onClick={() => setSideBar(false)}
           />
         ) : (
           <Menu
-            className="w-6 h-6 text-gray-600 sm:hidden"
+            className="h-6 w-6 cursor-pointer text-slate-700 sm:hidden"
             onClick={() => setSideBar(true)}
           />
         )}
       </nav>
 
-      <div className="flex-1 w-full flex h-[calc(100vh-64px)]">
+      <div className="flex h-[calc(100vh-80px)] w-full flex-1">
         <Sidebar sidebar={sidebar} setSideBar={setSideBar} />
 
-        <div className="flex-1 bg-[#F4F7FB]">
+        <main className="min-w-0 flex-1 bg-slate-50">
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   ) : (
-    <div className="flex items-center justify-center h-screen">
-      <SignIn />
+    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(219,234,254,0.9),transparent_28rem),radial-gradient(circle_at_bottom_right,rgba(221,214,254,0.8),transparent_28rem),linear-gradient(135deg,#ffffff,#eef8ff)] p-4">
+      <div className="glass-card p-3">
+        <SignIn />
+      </div>
     </div>
   );
 };

@@ -1,5 +1,9 @@
 import { Image, Sparkles } from "lucide-react";
 import React, { useState } from "react";
+import axios from "axios";
+import { useAuth } from "@clerk/clerk-react";
+import toast from "react-hot-toast";
+import OutputLoader from "../components/OutputLoader.jsx";
 
 const GenerateImages = () => {
   const imageStyle = [
@@ -19,46 +23,84 @@ const GenerateImages = () => {
   const [selectedStyle, setSelectedStyle] = useState("Realistic");
   const [input, setInput] = useState("");
   const [publish, setPublish] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const { getToken } = useAuth();
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setImageUrl("");
+
+    try {
+      const token = await getToken();
+      const prompt = `Generate an image of ${input} in the style ${selectedStyle}.`;
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/ai/generate-image`,
+        { prompt, publish },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
+
+      if (data.success) {
+        setImageUrl(data.secure_url);
+        toast.success("Image generated.");
+      } else {
+        toast.error(data.message || "Unable to generate image.");
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Unexpected error.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="h-full overflow-y-scroll p-6 flex items-start flex-wrap gap-4 text-slate-700">
-      {/* Left Column */}
+    <div className="tool-page-grid">
       <form
         onSubmit={onSubmitHandler}
         action=""
-        className="w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200"
+        className="tool-panel"
       >
-        <div className="flex items-center gap-3">
-          <Sparkles className="w-6 h-6 text-[#00AD25]" />
-          <h1 className="text-xl font-semibold">AI Image Generator</h1>
+        <div className="panel-header">
+          <div className="icon-badge bg-gradient-to-br from-emerald-500 to-cyan-500">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
+              Visual tool
+            </p>
+            <h1 className="text-xl font-bold">AI Image Generator</h1>
+          </div>
         </div>
 
-        <p className="mt-6 text-sm font-medium">Describe Your Image</p>
+        <label className="field-label" htmlFor="image-prompt">
+          Describe Your Image
+        </label>
 
         <textarea
+          id="image-prompt"
           onChange={(e) => setInput(e.target.value)}
           value={input}
           rows={4}
-          className="w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300"
-          placeholder="Describe What You Want to See in the Image...."
+          className="field-input min-h-32 resize-none"
+          placeholder="A bright futuristic workspace with AI assistants and soft neon accents"
           required
         />
 
-        <p className="mt-4 text-sm font-medium">Style</p>
+        <p className="field-label">Style</p>
 
-        <div className="mt-3 flex flex-wrap gap-3 sm:max-w-9/11">
+        <div className="mt-3 flex flex-wrap gap-3">
           {imageStyle.map((item) => (
             <span
               onClick={() => setSelectedStyle(item)}
               key={item}
-              className={`text-xs px-4 py-1 border rounded-full cursor-pointer ${
+              className={`chip ${
                 selectedStyle === item
-                  ? "bg-green-50 text-green-700 hover:bg-green-300"
-                  : "text-gray-500 border-gray-300 hover:bg-gray-100"
+                  ? "chip-active"
+                  : "chip-idle"
               }`}
             >
               {item}
@@ -66,7 +108,10 @@ const GenerateImages = () => {
           ))}
         </div>
 
-        <div className="my-6 flex items-center gap-2">
+        <div className="my-6 flex items-center justify-between rounded-2xl border border-slate-200 bg-white/80 p-3">
+          <p className="text-sm font-semibold text-slate-700">
+            Make this image public
+          </p>
           <label className="relative cursor-pointer">
             <input
               type="checkbox"
@@ -75,35 +120,53 @@ const GenerateImages = () => {
               className="sr-only peer"
             />
 
-            <div className="w-9 h-5 bg-slate-300 rounded-full peer-checked:bg-green-500 transition"></div>
+            <div className="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-gradient-to-r peer-checked:from-emerald-500 peer-checked:to-cyan-500"></div>
 
-            <span className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition peer-checked:translate-x-4"></span>
+            <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
           </label>
-
-          <p className="text-sm">Make This Image Public</p>
         </div>
 
-        <button className="w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#00AD25] to-[#04FF50] text-white px-4 py-2 mt-6 text-sm rounded-lg cursor-pointer hover:opacity-90 transition-all duration-200">
-          <Image className="w-5 h-5" />
+        <button disabled={loading} className="gradient-button mt-8">
+          {loading ? (
+            <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+          ) : (
+            <Image className="h-5 w-5" />
+          )}
           Generate Image
         </button>
       </form>
 
-      {/* Right Column */}
-      <div className="w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200 flex flex-col min-h-96">
-        <div className="flex items-center gap-3">
-          <Image className="w-6 h-6 text-[#00AD25]" />
-          <h1 className="text-xl font-semibold">Generate Images</h1>
+      <div className="tool-panel flex min-h-[28rem] flex-col">
+        <div className="panel-header">
+          <div className="icon-badge bg-gradient-to-br from-emerald-500 to-cyan-500">
+            <Image className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
+              Output
+            </p>
+            <h1 className="text-xl font-bold">Generated Image</h1>
+          </div>
         </div>
 
-        <hr className="my-8 h-px border-0 bg-gray-300 dark:bg-gray-700" />
+        <hr className="divider-soft" />
 
-        <div className="flex-1 flex justify-center items-center gap-5 text-gray-400">
-          <Image className="w-9 h-9" />
-          <p className="">
-            Enter a Topic and Click "Generate Image" to get Started
-          </p>
-        </div>
+        {loading ? (
+          <OutputLoader label="Generating your image" />
+        ) : !imageUrl ? (
+          <div className="empty-state">
+            <Image className="h-10 w-10 text-emerald-400" />
+            <p className="text-sm font-semibold">
+              Describe an image and click Generate Image to get started.
+            </p>
+          </div>
+        ) : (
+          <img
+            src={imageUrl}
+            alt="Generated result"
+            className="max-h-[34rem] w-full rounded-2xl border border-slate-200 object-contain shadow-lg"
+          />
+        )}
       </div>
     </div>
   );

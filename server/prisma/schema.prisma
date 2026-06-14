@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  BASIC
+  MODERATE
+  PRO
+}
+
+enum SubscriptionStatus {
+  FREE
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+enum ToolCategory {
+  CONTENT
+  IMAGE
+  CAREER
+  PRODUCTIVITY
+  DEVELOPER
+  ADVANCED
+}
+
+enum CreditAction {
+  GRANT
+  DEDUCT
+  REFUND
+  ADJUST
+}
+
+model User {
+  id                   String             @id @default(cuid())
+  clerkId              String             @unique
+  email                String?
+  fullName             String?
+  imageUrl             String?
+  currentPlan          Plan               @default(BASIC)
+  availableCredits     Int                @default(20)
+  usedCredits          Int                @default(0)
+  subscriptionStatus   SubscriptionStatus @default(FREE)
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  subscriptions Subscription[]
+  payments      Payment[]
+  creditUsages  CreditUsage[]
+  toolUsages    ToolUsage[]
+
+  @@index([currentPlan])
+  @@index([subscriptionStatus])
+  @@map("users")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  plan                 Plan
+  status               SubscriptionStatus @default(INCOMPLETE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([plan, status])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id                      String        @id @default(cuid())
+  userId                  String
+  subscriptionId          String?
+  stripeCheckoutSessionId String?       @unique
+  stripePaymentIntentId   String?       @unique
+  stripeInvoiceId         String?       @unique
+  amount                  Int
+  currency                String        @default("usd")
+  status                  PaymentStatus @default(PENDING)
+  plan                    Plan
+  paidAt                  DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Creation {
+  id        Int       @id @default(autoincrement())
+  userId    String    @map("user_id")
+  prompt    String
+  content   String
+  type      String
+  publish   Boolean?  @default(false)
+  likes     String[]  @default([])
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("creations")
+}
+
+model CreditUsage {
+  id        String       @id @default(cuid())
+  userId    String
+  toolSlug  String?
+  action    CreditAction
+  credits   Int
+  reason    String?
+  createdAt DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([toolSlug])
+  @@map("credit_usages")
+}
+
+model ToolUsage {
+  id        String       @id @default(cuid())
+  userId    String
+  toolSlug  String
+  category  ToolCategory
+  credits   Int
+  success   Boolean      @default(true)
+  metadata  Json?
+  createdAt DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([toolSlug])
+  @@index([category])
+  @@map("tool_usages")
+}

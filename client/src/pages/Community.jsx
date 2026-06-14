@@ -1,46 +1,106 @@
-import { useUser } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import React, { useEffect, useState } from "react";
 import { dummyPublishedCreationData } from "../assets/assets.js";
 import { Heart } from "lucide-react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 const Community = () => {
   const [creations, setCreations] = useState([]);
   const { user } = useUser();
-
-  const fetchCreations = async () => {
-    setCreations(dummyPublishedCreationData);
-  };
+  const { getToken } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchCreations();
+    const fetchCreations = async () => {
+      try {
+        const token = await getToken();
+        const { data } = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/user/get-published-creations`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          }
+        );
+
+        setCreations(data.success ? data.creations : dummyPublishedCreationData);
+      } catch {
+        setCreations(dummyPublishedCreationData);
+      }
+    };
+
+    fetchCreations();
+  }, [getToken]);
+
+  const toggleLike = async (creationId) => {
+    try {
+      const token = await getToken();
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/user/toggle-like-creation`,
+        { id: creationId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
+
+      if (!data.success) {
+        toast.error(data.message || "Unable to update like.");
+        return;
+      }
+
+      setCreations((current) =>
+        current.map((creation) => {
+          if (creation.id !== creationId) return creation;
+
+          const likes = creation.likes || [];
+          const isLiked = likes.includes(user.id);
+          return {
+            ...creation,
+            likes: isLiked
+              ? likes.filter((likedUserId) => likedUserId !== user.id)
+              : [...likes, user.id],
+          };
+        })
+      );
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Unable to update like.");
     }
-  }, []);
+  };
 
   return (
-    <div className="flex-1 h-full flex flex-col gap-4 p-6">
-      Creations
-      <hr className="my-8 h-px border-0 bg-gray-300 dark:bg-gray-700" />
-      <div className="bg-white h-full w-full rounded-xl overflow-y-scroll">
+    <div className="page-shell">
+      <div className="content-wrap flex min-h-full flex-col">
+        <div className="mb-8">
+          <span className="section-kicker">Community</span>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+            Creator Gallery
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            Explore public AI images shared by the community.
+          </p>
+        </div>
+
+      <div className="grid gap-5 rounded-3xl border border-white/75 bg-white/80 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {creations.map((creation, index) => (
           <div
             key={index}
-            className="relative group inline-block pl-3 pt-3 w-full sm:max-w-1/2 lg:max-w-1/3"
+            className="group relative aspect-[4/5] overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-sm"
           >
             <img
               src={creation.content}
               alt="CREATION CONTENT"
-              className="w-full h-full object-cover rounded-lg"
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
 
-            <div className="absolute bottom-0 top-0 right-0 left-3 flex gap-2 items-end justify-end group-hover:justify-between p-3 group-hover:bg-gradient-to-b from-transparent to-black/80 text-white rounded-lg">
-              <p className="text-sm hidden group-hover:block">
+            <div className="absolute inset-0 flex items-end justify-between gap-3 bg-gradient-to-t from-slate-950/80 via-slate-950/10 to-transparent p-4 text-white opacity-0 transition duration-300 group-hover:opacity-100">
+              <p className="line-clamp-3 text-sm font-medium leading-5">
                 {creation.prompt}
               </p>
-              <div className="flex gap-1 items-center">
+              <div className="flex shrink-0 items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-sm font-bold backdrop-blur">
                 <p>{creation.likes.length}</p>
                 <Heart
-                  className={`min-w-5 hover:scale-110 cursor-pointer ${
+                  onClick={() => toggleLike(creation.id)}
+                  className={`h-5 min-w-5 cursor-pointer transition hover:scale-110 ${
                     creation.likes.includes(user.id)
                       ? "fill-red-500 text-red-600"
                       : "text-white"
@@ -50,6 +110,7 @@ const Community = () => {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

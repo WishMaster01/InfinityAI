@@ -9,15 +9,14 @@ import Footer from "../components/Footer.jsx";
 
 const Home = () => {
   return (
-    <>
+    <main className="min-h-screen overflow-hidden bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_48%,#eef8ff_100%)]">
       <Navbar />
       <Hero />
       <AITools />
       <Testimonial />
       <Plan />
-      <hr className="my-8 h-px border-0 bg-gray-300 dark:bg-gray-700" />
       <Footer />
-    </>
+    </main>
   );
 };
 

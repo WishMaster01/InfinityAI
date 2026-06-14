@@ -1,27 +1,91 @@
-import sql from "../configs/db.js";
+import prisma from "../configs/db.js";
+
+export const syncUser = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      user: {
+        id: req.user.id,
+        clerkId: req.user.clerkId,
+        email: req.user.email,
+        fullName: req.user.fullName,
+        imageUrl: req.user.imageUrl,
+        plan: req.user.currentPlan,
+        availableCredits: req.user.availableCredits,
+        usedCredits: req.user.usedCredits,
+        subscriptionStatus: req.user.subscriptionStatus,
+      },
+    });
+  } catch (error) {
+    console.error("Error in syncUser:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 export const getUserCreations = async (req, res) => {
   try {
-    const userId = req.userId;
+    const creations = await prisma.creation.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: "desc" },
+    });
 
-    const creations =
-      await sql`SELECT * FROM creations WHERE user_id = ${userId} ORDER BY created_at DESC`;
-
-    res.json({ success: true, creations });
+    res.json({
+      success: true,
+      creations,
+      user: {
+        plan: req.user.currentPlan,
+        availableCredits: req.user.availableCredits,
+        usedCredits: req.user.usedCredits,
+        subscriptionStatus: req.user.subscriptionStatus,
+      },
+    });
   } catch (error) {
-    console.error("Error occured during USER CONTROLLER");
+    console.error("Error in getUserCreations:", error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export const getUserHistory = async (req, res) => {
+  try {
+    const [creations, toolUsages] = await Promise.all([
+      prisma.creation.findMany({
+        where: { userId: req.userId },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.toolUsage.findMany({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      creations,
+      toolUsages,
+      user: {
+        plan: req.user.currentPlan,
+        availableCredits: req.user.availableCredits,
+        usedCredits: req.user.usedCredits,
+        subscriptionStatus: req.user.subscriptionStatus,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getUserHistory:", error);
     res.json({ success: false, message: error.message });
   }
 };
 
 export const getPublishedCreations = async (req, res) => {
   try {
-    const creations =
-      await sql`SELECT * FROM creations WHERE publish = true ORDER BY created_at DESC`;
+    const creations = await prisma.creation.findMany({
+      where: { publish: true },
+      orderBy: { createdAt: "desc" },
+    });
 
     res.json({ success: true, creations });
   } catch (error) {
-    console.error("Error occured during USER CONTROLLER");
+    console.error("Error in getPublishedCreations:", error);
     res.json({ success: false, message: error.message });
   }
 };
@@ -30,33 +94,39 @@ export const toggleLikeCraetion = async (req, res) => {
   try {
     const userId = req.userId;
     const { id } = req.body;
+    const creationId = Number(id);
 
-    const [creation] = await sql`SELECT * FROM creations WHERE id = ${id}`;
+    if (!Number.isInteger(creationId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Valid creation id is required." });
+    }
+
+    const creation = await prisma.creation.findUnique({
+      where: { id: creationId },
+    });
 
     if (!creation) {
-      return res.json({ success: false, message: "Creation NOt FOund" });
+      return res.json({ success: false, message: "Creation not found." });
     }
 
     const currentLikes = creation.likes ?? [];
-    const userIdStr = userId.toString();
-    let updatedLikes;
-    let message;
+    const isLiked = currentLikes.includes(userId);
+    const updatedLikes = isLiked
+      ? currentLikes.filter((likedUserId) => likedUserId !== userId)
+      : [...currentLikes, userId];
 
-    if (currentLikes.includes(userIdStr)) {
-      updatedLikes = currentLikes.filter((user) => user !== userIdStr);
-      message = "Creation Unliked";
-    } else {
-      updatedLikes = [...currentLikes, userIdStr];
-      message = "Creation Liked";
-    }
+    await prisma.creation.update({
+      where: { id: creationId },
+      data: { likes: updatedLikes },
+    });
 
-    const formattedArray = `{${updatedLikes.join(",")}}`;
-
-    await sql`UPDATE creations SET likes = ${formattedArray}::text[] WHERE id = ${id}`;
-
-    res.json({ success: true, message });
+    res.json({
+      success: true,
+      message: isLiked ? "Creation unliked." : "Creation liked.",
+    });
   } catch (error) {
-    console.error("Error occured during USER CONTROLLER");
+    console.error("Error in toggleLikeCraetion:", error);
     res.json({ success: false, message: error.message });
   }
 };

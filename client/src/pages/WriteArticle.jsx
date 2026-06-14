@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
+import FormattedOutput from "../components/FormattedOutput.jsx";
+import OutputLoader from "../components/OutputLoader.jsx";
 
 const WriteArticle = () => {
   const articleLength = [
@@ -21,9 +23,10 @@ const WriteArticle = () => {
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setContent("");
 
     try {
-      const token = await getToken({ template: "integration" }); // ✅ Explicit session token template
+      const token = await getToken();
 
       if (!token) {
         toast.error("Authentication token missing.");
@@ -63,82 +66,95 @@ const WriteArticle = () => {
   };
 
   return (
-    <div className="h-full overflow-y-scroll p-6 flex items-start flex-wrap gap-4 text-slate-700">
-      {/* Left Column */}
+    <div className="tool-page-grid">
       <form
         onSubmit={onSubmitHandler}
         action=""
-        className="w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200"
+        className="tool-panel"
       >
-        <div className="flex items-center gap-3">
-          <Sparkles className="w-6 h-6 text-[#4A7AFF]" />
-          <h1 className="text-xl font-semibold">Article Configuration</h1>
+        <div className="panel-header">
+          <div className="icon-badge bg-gradient-to-br from-blue-500 to-cyan-500">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
+              Writing tool
+            </p>
+            <h1 className="text-xl font-bold">Article Configuration</h1>
+          </div>
         </div>
 
-        <p className="mt-6 text-sm font-medium">Article Topic</p>
+        <label className="field-label" htmlFor="article-topic">
+          Article Topic
+        </label>
 
         <input
+          id="article-topic"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           type="text"
-          className="w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300"
-          placeholder="The Future of Artificial Intelligence is...."
+          className="field-input"
+          placeholder="The future of artificial intelligence in education"
           required
         />
 
-        <p className="mt-4 text-sm font-medium">Article Length</p>
+        <p className="field-label">Article Length</p>
 
-        <div className="mt-3 flex flex-wrap gap-3 sm:max-w-9/11">
+        <div className="mt-3 flex flex-wrap gap-3">
           {articleLength.map((item, index) => (
             <span
               onClick={() => setSelectedLength(item)}
               key={index}
-              className={`text-xs px-4 py-1 border rounded-full cursor-pointer ${
+              className={`chip ${
                 selectedLength.text === item.text
-                  ? "bg-blue-50 text-blue-700 hover:bg-blue-300"
-                  : "text-gray-500 border-gray-300 hover:bg-gray-100"
+                  ? "chip-active"
+                  : "chip-idle"
               }`}
             >
               {item.text}
             </span>
           ))}
         </div>
-        <br />
+
         <button
           disabled={loading}
-          className="w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#226BFF] to-[#65ADFF] text-white px-4 py-2 mt-6 text-sm rounded-lg cursor-pointer hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="gradient-button mt-8"
         >
           {loading ? (
-            <span className="w-4 h-4 my-1 rounded-full border-2 border-t-transparent animate-spin"></span>
+            <span className="my-1 h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
           ) : (
-            <Edit className="w-5 h-5" />
+            <Edit className="h-5 w-5" />
           )}
           Generate Article
         </button>
       </form>
 
-      {/* Right Column */}
-      <div className="w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200 flex flex-col min-h-96 max-h-[600px]">
-        <div className="flex items-center gap-3">
-          <Edit className="w-6 h-6 text-[#4A7AFF]" />
-          <h1 className="text-xl font-semibold">Generate Article</h1>
+      <div className="tool-panel flex min-h-[28rem] flex-col">
+        <div className="panel-header">
+          <div className="icon-badge bg-gradient-to-br from-blue-500 to-indigo-600">
+            <Edit className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
+              Output
+            </p>
+            <h1 className="text-xl font-bold">Generated Article</h1>
+          </div>
         </div>
 
-        <hr className="my-8 h-px border-0 bg-gray-300 dark:bg-gray-700" />
+        <hr className="divider-soft" />
 
-        {!content ? (
-          <div className="flex-1 flex justify-center items-center gap-5 text-gray-400">
-            <div className="text-sm flex flex-col items-center gap-5 text-gray-400">
-              <Edit className="w-9 h-9" />
-              <p className="">
-                Enter a Topic and Click "Generate Article" to get Started
-              </p>
-            </div>
+        {loading ? (
+          <OutputLoader label="Writing your article" />
+        ) : !content ? (
+          <div className="empty-state">
+            <Edit className="h-10 w-10 text-blue-400" />
+            <p className="text-sm font-semibold">
+              Enter a topic and click Generate Article to get started.
+            </p>
           </div>
         ) : (
-          <div className="mt-3 h-full overflow-y-scroll text-sm text-slate-600">
-            <div>{content}</div>
-          </div>
+          <FormattedOutput content={content} />
         )}
       </div>
     </div>

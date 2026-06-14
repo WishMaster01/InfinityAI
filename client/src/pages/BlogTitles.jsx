@@ -1,5 +1,10 @@
 import { Hash, Sparkles } from "lucide-react";
 import React, { useState } from "react";
+import axios from "axios";
+import { useAuth } from "@clerk/clerk-react";
+import toast from "react-hot-toast";
+import FormattedOutput from "../components/FormattedOutput.jsx";
+import OutputLoader from "../components/OutputLoader.jsx";
 
 const BlogTitles = () => {
   const blogCategories = [
@@ -22,74 +27,128 @@ const BlogTitles = () => {
 
   const [selectedCategory, setSelectedCategory] = useState("General");
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState("");
+  const { getToken } = useAuth();
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setContent("");
+
+    try {
+      const token = await getToken();
+      const prompt = `Generate blog titles for the keyword ${input} in the ${selectedCategory} category.`;
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/ai/generate-blog-title`,
+        { prompt },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
+
+      if (data.success) {
+        setContent(data.content);
+        toast.success("Titles generated.");
+      } else {
+        toast.error(data.message || "Unable to generate titles.");
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Unexpected error.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="h-full overflow-y-scroll p-6 flex items-start flex-wrap gap-4 text-slate-700">
-      {/* Left Column */}
+    <div className="tool-page-grid">
       <form
         onSubmit={onSubmitHandler}
         action=""
-        className="w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200"
+        className="tool-panel"
       >
-        <div className="flex items-center gap-3">
-          <Sparkles className="w-6 h-6 text-[#8E37EB]" />
-          <h1 className="text-xl font-semibold">AI Title Generator</h1>
+        <div className="panel-header">
+          <div className="icon-badge bg-gradient-to-br from-violet-600 to-fuchsia-500">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
+              Ideation tool
+            </p>
+            <h1 className="text-xl font-bold">AI Title Generator</h1>
+          </div>
         </div>
 
-        <p className="mt-6 text-sm font-medium">Keyword</p>
+        <label className="field-label" htmlFor="blog-keyword">
+          Keyword
+        </label>
 
         <input
-          onClick={(e) => setInput(e.target.value)}
+          id="blog-keyword"
+          onChange={(e) => setInput(e.target.value)}
           value={input}
           type="text"
-          className="w-full p-2 px-3 mt-2 outline-none text-sm rounded-md border border-gray-300"
-          placeholder="The Future of Artificial Intelligence is...."
+          className="field-input"
+          placeholder="Artificial intelligence workflows"
           required
         />
 
-        <p className="mt-4 text-sm font-medium">Category</p>
+        <p className="field-label">Category</p>
 
-        <div className="mt-3 flex flex-wrap gap-3 sm:max-w-9/11">
+        <div className="mt-3 flex flex-wrap gap-3">
           {blogCategories.map((item) => (
             <span
               onClick={() => setSelectedCategory(item)}
               key={item}
-              className={`text-xs px-4 py-1 border rounded-full cursor-pointer ${
+              className={`chip ${
                 selectedCategory === item
-                  ? "bg-purple-50 text-purple-700 hover:bg-purple-300"
-                  : "text-gray-500 border-gray-300 hover:bg-gray-100"
+                  ? "chip-active"
+                  : "chip-idle"
               }`}
             >
               {item}
             </span>
           ))}
         </div>
-        <br />
-        <button className="w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#C341F6] to-[#8E37EB] text-white px-4 py-2 mt-6 text-sm rounded-lg cursor-pointer hover:opacity-90 transition-all duration-200">
-          <Hash className="w-5 h-5" />
+
+        <button disabled={loading} className="gradient-button mt-8 bg-gradient-to-r from-fuchsia-500 to-violet-600">
+          {loading ? (
+            <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+          ) : (
+            <Hash className="h-5 w-5" />
+          )}
           Generate Title
         </button>
       </form>
 
-      {/* Right Column */}
-      <div className="w-full max-w-lg p-4 bg-white rounded-lg border border-gray-200 flex flex-col min-h-96">
-        <div className="flex items-center gap-3">
-          <Hash className="w-6 h-6 text-[#8E37EB]" />
-          <h1 className="text-xl font-semibold">Generate Titles</h1>
+      <div className="tool-panel flex min-h-[28rem] flex-col">
+        <div className="panel-header">
+          <div className="icon-badge bg-gradient-to-br from-fuchsia-500 to-violet-600">
+            <Hash className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
+              Output
+            </p>
+            <h1 className="text-xl font-bold">Generated Titles</h1>
+          </div>
         </div>
 
-        <hr className="my-8 h-px border-0 bg-gray-300 dark:bg-gray-700" />
+        <hr className="divider-soft" />
 
-        <div className="flex-1 flex justify-center items-center gap-5 text-gray-400">
-          <Hash className="w-9 h-9" />
-          <p className="">
-            Enter a Topic and Click "Generate Title" to get Started
-          </p>
-        </div>
+        {loading ? (
+          <OutputLoader label="Generating blog title ideas" />
+        ) : !content ? (
+          <div className="empty-state">
+            <Hash className="h-10 w-10 text-violet-400" />
+            <p className="text-sm font-semibold">
+              Enter a keyword and click Generate Title to get started.
+            </p>
+          </div>
+        ) : (
+          <FormattedOutput content={content} />
+        )}
       </div>
     </div>
   );

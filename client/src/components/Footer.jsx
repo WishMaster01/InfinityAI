@@ -4,60 +4,69 @@ import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
-    <footer className="px-6 md:px-16 lg:px-24 xl:px-32 pt-8 w-full text-gray-500">
-      <div className="flex flex-col md:flex-row justify-between w-full gap-10 border-b border-gray-500/30 pb-6">
-        <div className="md:max-w-96">
+    <footer className="w-full border-t border-white/70 bg-white/80 px-6 pt-16 text-slate-600 backdrop-blur-xl md:px-16 lg:px-24 xl:px-32">
+      <div className="mx-auto flex max-w-7xl flex-col justify-between gap-12 border-b border-slate-200 pb-10 md:flex-row">
+        <div className="md:max-w-xl">
           <img
-            className="h-10 md:h-14"
-            src={assets.logo1}
-            alt="dummyLogoDark"
+            className="h-12 drop-shadow-sm md:h-16"
+            src={assets.infinityLogo}
+            alt="InfinityAI"
           />
-          <p className="mt-6 text-sm text-gray-500 max-w-lg mx-auto">
-            <span className="text-primary">"AI for Everything"</span> is your
-            ultimate intelligent assistant, transforming how you work and
-            create. Our AI SaaS app offers a powerful suite of tools for
-            multiple uses, from generating engaging content and insightful
-            articles to streamlining your daily tasks. We empower individuals
-            and businesses with cutting-edge AI, making complex processes simple
-            and boosting productivity on one intuitive platform.
+          <p className="mt-7 max-w-xl text-base leading-8 text-slate-600">
+            <span className="font-semibold text-indigo-700">
+              InfinityAI
+            </span>{" "}
+            is The Ultimate All-in-One AI Platform for Content Creation, Image
+            Generation, Career Growth, Productivity, and Development.
           </p>
         </div>
-        <div className="flex-1 flex items-start md:justify-end gap-20">
+
+        <div className="flex flex-1 flex-col items-start gap-10 sm:flex-row md:justify-end lg:gap-20">
           <div>
-            <h2 className="text-slate-700 text-[24px] font-semibold mb-5">
-              Company
-            </h2>
-            <ul className="text-sm space-y-2">
+            <h2 className="mb-5 text-xl font-black text-slate-950">Company</h2>
+            <ul className="space-y-3 text-base font-medium">
               <li>
-                <Link to={"/"}>Home</Link>
+                <Link className="hover:text-indigo-700" to={"/"}>
+                  Home
+                </Link>
               </li>
               <li>
-                <Link to={"/about"}>About us</Link>
+                <Link className="hover:text-indigo-700" to={"/about"}>
+                  About us
+                </Link>
               </li>
               <li>
-                <Link to={"/contact"}>Contact us</Link>
+                <Link className="hover:text-indigo-700" to={"/contact"}>
+                  Contact us
+                </Link>
               </li>
               <li>
-                <Link to={"/privacy"}>Privacy policy</Link>
+                <Link className="hover:text-indigo-700" to={"/privacy"}>
+                  Privacy policy
+                </Link>
               </li>
             </ul>
           </div>
-          <div>
-            <h2 className="text-slate-700 text-[24px] font-semibold mb-5">
-              Subscribe to our <span className="text-primary">AI SaaS App</span>
+
+          <div className="max-w-md">
+            <h2 className="mb-5 text-2xl font-black leading-tight text-slate-950">
+              Subscribe to our{" "}
+              <span className="bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">
+                InfinityAI updates
+              </span>
             </h2>
-            <div className="text-sm space-y-2">
-              <p className="text-gray-500 max-w-lg mx-auto">
-                Get the latest news, articles, and resources about new features
-                of our AI SaaS App, sent to your inbox weekly.
+            <div className="space-y-2 text-base">
+              <p className="max-w-lg leading-7 text-slate-600">
+                Get the latest product updates, AI workflow guides, and new
+                feature releases sent to your inbox weekly.
               </p>
-              <div className="flex items-center gap-2 pt-4">
+              <div className="flex flex-col gap-3 pt-4 sm:flex-row">
                 <input
-                  className="border border-gray-500/30 placeholder-gray-500 focus:ring-2 ring-indigo-600 outline-none w-full max-w-64 h-9 rounded px-2"
+                  className="field-input mt-0 sm:max-w-64"
                   type="email"
                   placeholder="Enter your email"
                 />
-                <button className="bg-primary w-24 h-9 text-white rounded cursor-pointer hover:bg-primary/90 transition-colors">
+                <button className="inline-flex h-14 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-500 px-6 text-base font-bold text-white shadow-lg shadow-indigo-200 hover:-translate-y-0.5">
                   Subscribe
                 </button>
               </div>
@@ -65,8 +74,9 @@ const Footer = () => {
           </div>
         </div>
       </div>
-      <p className="pt-4 text-center text-xs md:text-sm pb-5">
-        Copyright 2025 © AI for Everything. All Right Reserved.
+
+      <p className="pb-6 pt-5 text-center text-sm text-slate-500 md:text-base">
+        Copyright 2026 (c) InfinityAI. All Rights Reserved.
       </p>
     </footer>
   );

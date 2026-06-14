@@ -1,5 +1,4 @@
 import logo from "./logo.svg";
-import logo1 from "./LogoForAI.svg";
 import gradientBackground from "./gradientBackground.png";
 import user_group from "./user_group.png";
 import star_icon from "./star_icon.svg";
@@ -18,9 +17,12 @@ import ai_gen_img_1 from "./ai_gen_img_1.png";
 import ai_gen_img_2 from "./ai_gen_img_2.png";
 import ai_gen_img_3 from "./ai_gen_img_3.png";
 
+const infinityLogo = "/InfinityAI_logo.png";
+
 export const assets = {
   logo,
-  logo1,
+  logo1: infinityLogo,
+  infinityLogo,
   gradientBackground,
   user_group,
   star_icon,
@@ -86,7 +88,7 @@ export const dummyTestimonialData = [
     name: "John Doe",
     title: "Marketing Director, TechCorp",
     content:
-      "ContentAI has revolutionized our content workflow. The quality of the articles is outstanding, and it saves us hours of work every week.",
+      "InfinityAI has revolutionized our content workflow. The quality of the articles is outstanding, and it saves us hours of work every week.",
     rating: 4,
   },
   {
@@ -94,7 +96,7 @@ export const dummyTestimonialData = [
     name: "Jane Smith",
     title: "Content Creator, TechCorp",
     content:
-      "ContentAI has made our content creation process effortless. The AI tools have helped us produce high-quality content faster than ever before.",
+      "InfinityAI has made our content creation process effortless. The AI tools have helped us produce high-quality content faster than ever before.",
     rating: 5,
   },
   {
@@ -102,7 +104,7 @@ export const dummyTestimonialData = [
     name: "David Lee",
     title: "Content Writer, TechCorp",
     content:
-      "ContentAI has transformed our content creation process. The AI tools have helped us produce high-quality content faster than ever before.",
+      "InfinityAI has transformed our content creation process. The AI tools have helped us produce high-quality content faster than ever before.",
     rating: 4,
   },
 ];

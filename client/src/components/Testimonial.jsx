@@ -9,7 +9,7 @@ const Testimonial = () => {
       name: "John Doe",
       title: "Marketing Director, TechCorp",
       content:
-        "ContentAI has revolutionized our content workflow. The quality of the articles is outstanding, and it saves us hours of work every week.",
+        "InfinityAI has revolutionized our content workflow. The quality of the articles is outstanding, and it saves us hours of work every week.",
       rating: 4,
     },
     {
@@ -18,7 +18,7 @@ const Testimonial = () => {
       name: "Jane Smith",
       title: "Content Creator, TechCorp",
       content:
-        "ContentAI has made our content creation process effortless. The AI tools have helped us produce high-quality content faster than ever before.",
+        "InfinityAI has made our content creation process effortless. The AI tools have helped us produce high-quality content faster than ever before.",
       rating: 5,
     },
     {
@@ -27,26 +27,31 @@ const Testimonial = () => {
       name: "David Lee",
       title: "Content Writer, TechCorp",
       content:
-        "ContentAI has transformed our content creation process. The AI tools have helped us produce high-quality content faster than ever before.",
+        "InfinityAI has transformed our content creation process. The AI tools have helped us produce high-quality content faster than ever before.",
       rating: 4,
     },
   ];
 
   return (
-    <div className="px-4 sm:px-20 xl:px-32 py-24">
-      <div className="text-center">
-        <h2 className="text-slate-700 text-[42px] font-semibold">
-          Loved by <span className="text-primary">Creators</span>
+    <section className="px-4 py-28 sm:px-8 lg:px-20 xl:px-32">
+      <div className="mx-auto max-w-7xl">
+        <div className="text-center">
+        <span className="section-kicker">Social proof</span>
+        <h2 className="section-title">
+          Loved by{" "}
+          <span className="bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">
+            Creators
+          </span>
         </h2>
-        <p className="text-gray-500 max-w-lg mx-auto">
+        <p className="section-copy">
           Don't just take our word for it. Here's what our users are saying.
         </p>
       </div>
-      <div className="flex flex-wrap mt-10 justify-center">
+      <div className="mt-16 grid gap-7 md:grid-cols-3">
         {dummyTestimonialData.map((testimonial, index) => (
           <div
             key={index}
-            className="p-8 m-4 max-w-xs rounded-lg bg-[#FDFDFE] shadow-lg border border-gray-100 hover:-translate-y-1 transition duration-300 cursor-pointer"
+            className="premium-card p-8"
           >
             <div className="flex items-center gap-1">
               {Array(5)
@@ -59,30 +64,31 @@ const Testimonial = () => {
                         ? assets.star_icon
                         : assets.star_dull_icon
                     }
-                    className="w-4 h-4"
-                    alt="STAR RATING"
+                    className="h-5 w-5"
+                    alt="Star rating"
                   />
                 ))}
             </div>
-            <p className="text-gray-500 text-sm my-5">
+            <p className="my-8 text-lg leading-8 text-slate-600">
               "{testimonial.content}"
             </p>
-            <hr className="mb-5 border-gray-300" />
+            <hr className="mb-6 border-slate-200" />
             <div className="flex items-center gap-4">
               <img
                 src={testimonial.image}
-                className="w-12 object-contain rounded-full"
-                alt=""
+                className="h-14 w-14 rounded-2xl object-cover ring-4 ring-blue-50"
+                alt={testimonial.name}
               />
-              <div className="text-sm text-gray-600">
-                <h3 className="font-medium">{testimonial.name}</h3>
-                <p className="text-xs text-gray-500">{testimonial.title}</p>
+              <div>
+                <h3 className="text-base font-black text-slate-900">{testimonial.name}</h3>
+                <p className="mt-1 text-sm text-slate-500">{testimonial.title}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
-    </div>
+      </div>
+    </section>
   );
 };
 

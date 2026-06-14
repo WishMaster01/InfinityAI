@@ -12,11 +12,12 @@ const Navbar = () => {
   const { openSignIn } = useClerk();
 
   return (
-    <div className="navbar fixed z-5 w-full backdrop-blur-2xl flex justify-between items-center py-3 px-4 sm:px-20 xl:px-32">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/70 bg-white/80 px-4 py-4 shadow-lg shadow-blue-100/50 backdrop-blur-2xl sm:px-8 lg:px-20 xl:px-32">
+      <div className="mx-auto flex max-w-7xl items-center justify-between">
       <img
-        src={assets.logo1}
-        alt="LOGO"
-        className="w-16 sm:w-24 cursor-pointer"
+        src={assets.infinityLogo}
+        alt="InfinityAI"
+        className="h-14 w-auto cursor-pointer object-contain drop-shadow-sm sm:h-16"
         onClick={() => navigate("/")}
       />
 
@@ -25,12 +26,13 @@ const Navbar = () => {
       ) : (
         <button
           onClick={openSignIn}
-          className="flex items-center gap-2 rounded-full text-sm cursor-pointer bg-primary text-white px-10 py-2.5"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-500 px-6 py-3 text-base font-bold text-white shadow-lg shadow-indigo-200 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 sm:px-8"
         >
-          Get Started <ArrowRight className="w-4 h-4" />
+          Get Started <ArrowRight className="h-5 w-5" />
         </button>
       )}
-    </div>
+      </div>
+    </header>
   );
 };
 
