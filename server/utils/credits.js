@@ -13,15 +13,23 @@ export const consumeCredits = async ({ user, toolSlug, metadata }) => {
     throw error;
   }
 
-  const [updatedUser] = await prisma.$transaction([
-    prisma.user.update({
-      where: { id: user.id },
-      data: {
-        availableCredits: { decrement: tool.credits },
-        usedCredits: { increment: tool.credits },
-      },
-    }),
-    prisma.creditUsage.create({
+  const { updatedUser, toolUsage } = await prisma.$transaction(async (transaction) => {
+    // Conditional update makes the balance check atomic across concurrent jobs.
+    const result = await transaction.user.updateMany({
+      where: { id: user.id, availableCredits: { gte: tool.credits } },
+      data: { availableCredits: { decrement: tool.credits }, usedCredits: { increment: tool.credits } },
+    });
+    if (!result.count) {
+      const current = await transaction.user.findUnique({ where: { id: user.id } });
+      const error = new Error("Insufficient credits. Upgrade or buy more credits.");
+      error.statusCode = 402;
+      error.code = "INSUFFICIENT_CREDITS";
+      error.requiredCredits = tool.credits;
+      error.availableCredits = current?.availableCredits ?? 0;
+      throw error;
+    }
+
+    await transaction.creditUsage.create({
       data: {
         userId: user.id,
         toolSlug: tool.slug,
@@ -29,8 +37,8 @@ export const consumeCredits = async ({ user, toolSlug, metadata }) => {
         credits: tool.credits,
         reason: `Used ${tool.name}`,
       },
-    }),
-    prisma.toolUsage.create({
+    });
+    const createdToolUsage = await transaction.toolUsage.create({
       data: {
         userId: user.id,
         toolSlug: tool.slug,
@@ -38,16 +46,20 @@ export const consumeCredits = async ({ user, toolSlug, metadata }) => {
         credits: tool.credits,
         metadata: metadata || undefined,
       },
-    }),
-  ]);
+    });
+    return {
+      updatedUser: await transaction.user.findUnique({ where: { id: user.id } }),
+      toolUsage: createdToolUsage,
+    };
+  });
 
-  return { user: updatedUser, tool };
+  return { user: updatedUser, tool, toolUsage };
 };
 
-export const refundCredits = async ({ userId, tool, reason }) => {
+export const refundCredits = async ({ userId, tool, usageId, reason }) => {
   if (!tool?.credits) return;
 
-  await prisma.$transaction([
+  const operations = [
     prisma.user.update({
       where: { id: userId },
       data: {
@@ -64,5 +76,11 @@ export const refundCredits = async ({ userId, tool, reason }) => {
         reason: reason || `Refunded ${tool.name}`,
       },
     }),
-  ]);
+  ];
+  if (usageId) {
+    operations.push(
+      prisma.toolUsage.update({ where: { id: usageId }, data: { success: false } }),
+    );
+  }
+  await prisma.$transaction(operations);
 };

@@ -59,6 +59,15 @@ export const planCards = [
   },
 ];
 
+const categoryAlgorithms = {
+  CONTENT: ["Trie autocomplete", "Frequency map", "Sliding-window analysis", "Priority ranking"],
+  IMAGE: ["Plan-priority queue", "LRU cache", "SHA-256 deduplication"],
+  CAREER: ["KMP matching", "Cosine similarity", "Weighted ATS scoring"],
+  PRODUCTIVITY: ["Text chunking", "Graph traversal", "Priority ranking"],
+  DEVELOPER: ["Stack validation", "Dependency graph", "Topological sort"],
+  ADVANCED: ["LRU cache", "Request queue", "Token bucket"],
+};
+
 export const featureCategories = [
   {
     key: "CONTENT",
@@ -178,16 +187,21 @@ export const featureCategories = [
 
 export const allTools = featureCategories.flatMap((category) =>
   category.tools.map(([slug, name, description, icon, minPlan, credits, path]) => ({
+    id: slug,
     slug,
     name,
     description,
     icon,
     minPlan,
+    requiredPlan: minPlan,
     credits,
-    path: path || null,
+    creditCost: credits,
+    path: path || `/ai/tools/${slug}`,
     category: category.key,
     categoryTitle: category.title,
     filter: category.filter,
     isPremium: minPlan !== "BASIC",
+    algorithmUsed: categoryAlgorithms[category.key],
+    usageCount: 0,
   }))
 );

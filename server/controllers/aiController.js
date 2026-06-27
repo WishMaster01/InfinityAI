@@ -5,7 +5,17 @@ import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import FormData from "form-data";
+import { createHash } from "crypto";
 import { consumeCredits, refundCredits } from "../utils/credits.js";
+import { LruCache } from "../utils/dsa/lruCache.js";
+import { PriorityQueue } from "../utils/dsa/priorityQueue.js";
+import {
+  chunkText,
+  repeatedPhrases,
+  tokenize,
+  wordFrequency,
+} from "../utils/dsa/textAnalysis.js";
+import { formatAtsReport, scoreResume } from "../utils/dsa/scoring.js";
 import {
   assertAllowedMime,
   requireText,
@@ -14,6 +24,42 @@ import {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const resultCache = new LruCache({ capacity: 100, ttlMs: 30 * 60 * 1000 });
+
+const hashValue = (...values) => {
+  const hash = createHash("sha256");
+  for (const value of values) hash.update(value);
+  return hash.digest("hex");
+};
+
+const getContentAnalysis = (content) => ({
+  wordCount: tokenize(content).length,
+  topKeywords: [...wordFrequency(content).entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 10)
+    .map(([word, count]) => ({ word, count })),
+  repeatedPhrases: repeatedPhrases(content, 3, 2)
+    .slice(0, 5)
+    .map(([phrase, count]) => ({ phrase, count })),
+});
+
+const rankGeneratedTitles = (content, prompt) => {
+  const keywords = new Set(tokenize(prompt));
+  const heap = new PriorityQueue();
+  const titles = String(content || "")
+    .split("\n")
+    .map((title) => title.trim())
+    .filter(Boolean);
+  for (const [index, title] of titles.entries()) {
+    const cleanTitle = title.replace(/^[-*\d.)\s]+/, "");
+    const lengthScore = Math.max(0, 30 - Math.abs(cleanTitle.length - 55));
+    const keywordScore = tokenize(cleanTitle).filter((word) => keywords.has(word)).length * 12;
+    heap.enqueue({ title: cleanTitle, priority: lengthScore + keywordScore - index * 0.01 });
+  }
+  const ranked = [];
+  while (heap.size) ranked.push(`${ranked.length + 1}. ${heap.dequeue().title}`);
+  return ranked.join("\n") || content;
+};
 
 const requireEnv = (key, label) => {
   if (!process.env[key]) {
@@ -55,12 +101,27 @@ const normalizeProviderError = (error, provider) => {
   return error;
 };
 
-const generateGeminiText = async (prompt) => {
+export const generateGeminiText = async (prompt) => {
   requireEnv("GEMINI_API_KEY", "Gemini API key");
 
   try {
     const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
     const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    throw normalizeProviderError(error, "Gemini");
+  }
+};
+
+export const generateGeminiMultimodal = async (prompt, buffer, mimeType) => {
+  requireEnv("GEMINI_API_KEY", "Gemini API key");
+  try {
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { data: Buffer.from(buffer).toString("base64"), mimeType } },
+    ]);
     const response = await result.response;
     return response.text();
   } catch (error) {
@@ -90,13 +151,18 @@ const safeUnlink = (filePath) => {
   if (filePath) fs.unlink(filePath, () => {});
 };
 
-const sendError = async (res, error, consumed) => {
+export const sendError = async (res, error, consumed) => {
   if (consumed?.user?.id && consumed?.tool) {
-    await refundCredits({
-      userId: consumed.user.id,
-      tool: consumed.tool,
-      reason: error.message,
-    });
+    try {
+      await refundCredits({
+        userId: consumed.user.id,
+        tool: consumed.tool,
+        usageId: consumed.toolUsage?.id,
+        reason: error.message,
+      });
+    } catch (refundError) {
+      console.error("Credit refund failed:", refundError);
+    }
   }
 
   res.status(error.statusCode || 500).json({
@@ -106,6 +172,30 @@ const sendError = async (res, error, consumed) => {
     requiredCredits: error.requiredCredits,
     availableCredits: error.availableCredits,
   });
+};
+
+export const generateImageAsset = async (prompt) => {
+  const cacheKey = `image:${hashValue(prompt.trim().toLowerCase())}`;
+  let asset = resultCache.get(cacheKey);
+  const cacheHit = Boolean(asset);
+  if (!asset) {
+    requireEnv("CLIPDROP_API_KEY", "Clipdrop API key");
+    requireCloudinaryConfig();
+    const formData = new FormData();
+    formData.append("prompt", prompt);
+    const { data } = await axios
+      .post("https://clipdrop-api.co/text-to-image/v1", formData, {
+        headers: { ...formData.getHeaders(), "x-api-key": process.env.CLIPDROP_API_KEY },
+        responseType: "arraybuffer",
+      })
+      .catch((error) => {
+        throw normalizeProviderError(error, "Clipdrop");
+      });
+    const uploaded = await uploadImageBufferToCloudinary(data, "image/png");
+    asset = { secureUrl: uploaded.secure_url, publicId: uploaded.public_id };
+    resultCache.set(cacheKey, asset);
+  }
+  return { ...asset, cacheHit };
 };
 
 const createCreation = async ({ userId, prompt, content, type, publish }) => {
@@ -141,7 +231,12 @@ export const generateArticle = async (req, res) => {
       type: "article",
     });
 
-    res.json({ success: true, content, credits: consumed.user.availableCredits });
+    res.json({
+      success: true,
+      content,
+      analysis: getContentAnalysis(content),
+      credits: consumed.user.availableCredits,
+    });
   } catch (error) {
     console.error("Error in generateArticle:", error);
     await sendError(res, error, consumed);
@@ -160,7 +255,8 @@ export const generateBlogTitle = async (req, res) => {
       toolSlug: "blog-title-generator",
     });
 
-    const content = await generateGeminiText(prompt);
+    const generatedContent = await generateGeminiText(prompt);
+    const content = rankGeneratedTitles(generatedContent, prompt);
 
     await createCreation({
       userId: req.userId,
@@ -170,7 +266,12 @@ export const generateBlogTitle = async (req, res) => {
       publish,
     });
 
-    res.json({ success: true, content, credits: consumed.user.availableCredits });
+    res.json({
+      success: true,
+      content,
+      analysis: getContentAnalysis(content),
+      credits: consumed.user.availableCredits,
+    });
   } catch (error) {
     console.error("Error in generateBlogTitle:", error);
     await sendError(res, error, consumed);
@@ -191,25 +292,7 @@ export const generateImage = async (req, res) => {
       toolSlug: "ai-image-generator",
     });
 
-    const formData = new FormData();
-    formData.append("prompt", prompt);
-
-    const { data } = await axios
-      .post("https://clipdrop-api.co/text-to-image/v1", formData, {
-        headers: {
-          ...formData.getHeaders(),
-          "x-api-key": process.env.CLIPDROP_API_KEY,
-        },
-        responseType: "arraybuffer",
-      })
-      .catch((error) => {
-        throw normalizeProviderError(error, "Clipdrop");
-      });
-
-    const { secure_url } = await uploadImageBufferToCloudinary(
-      data,
-      "image/png"
-    );
+    const { secureUrl: secure_url, cacheHit } = await generateImageAsset(prompt);
 
     await createCreation({
       userId: req.userId,
@@ -222,6 +305,7 @@ export const generateImage = async (req, res) => {
     res.json({
       success: true,
       secure_url,
+      cacheHit,
       credits: consumed.user.availableCredits,
     });
   } catch (error) {
@@ -248,29 +332,35 @@ export const removeImageBackground = async (req, res) => {
       toolSlug: "background-remover",
     });
 
-    const formData = new FormData();
-    formData.append("image_file", fs.createReadStream(image.path), {
-      filename: image.originalname || "image.png",
-      contentType: image.mimetype,
-    });
-
-    const { data, headers } = await axios
-      .post("https://clipdrop-api.co/remove-background/v1", formData, {
-        headers: {
-          ...formData.getHeaders(),
-          "x-api-key": process.env.CLIPDROP_API_KEY,
-          accept: "image/png",
-        },
-        responseType: "arraybuffer",
-      })
-      .catch((error) => {
-        throw normalizeProviderError(error, "Clipdrop");
+    const imageBuffer = await fs.promises.readFile(image.path);
+    const cacheKey = `remove-bg:${hashValue(imageBuffer)}`;
+    let secure_url = resultCache.get(cacheKey);
+    const cacheHit = Boolean(secure_url);
+    if (!secure_url) {
+      const formData = new FormData();
+      formData.append("image_file", fs.createReadStream(image.path), {
+        filename: image.originalname || "image.png",
+        contentType: image.mimetype,
       });
 
-    const { secure_url } = await uploadImageBufferToCloudinary(
-      data,
-      headers["content-type"] || "image/png"
-    );
+      const { data, headers } = await axios
+        .post("https://clipdrop-api.co/remove-background/v1", formData, {
+          headers: {
+            ...formData.getHeaders(),
+            "x-api-key": process.env.CLIPDROP_API_KEY,
+            accept: "image/png",
+          },
+          responseType: "arraybuffer",
+        })
+        .catch((error) => {
+          throw normalizeProviderError(error, "Clipdrop");
+        });
+      ({ secure_url } = await uploadImageBufferToCloudinary(
+        data,
+        headers["content-type"] || "image/png",
+      ));
+      resultCache.set(cacheKey, secure_url);
+    }
 
     await createCreation({
       userId: req.userId,
@@ -282,6 +372,7 @@ export const removeImageBackground = async (req, res) => {
     res.json({
       success: true,
       secure_url,
+      cacheHit,
       credits: consumed.user.availableCredits,
     });
   } catch (error) {
@@ -294,10 +385,10 @@ export const removeImageBackground = async (req, res) => {
 
 export const removeImageObject = async (req, res) => {
   let consumed;
+  const image = req.file;
 
   try {
     const object = sanitizeText(req.body.object, 120);
-    const image = req.file;
     requireCloudinaryConfig();
 
     assertAllowedMime(
@@ -318,15 +409,22 @@ export const removeImageObject = async (req, res) => {
       metadata: { object },
     });
 
-    const { public_id } = await cloudinary.uploader
-      .upload(image.path)
-      .catch((error) => {
-        throw normalizeProviderError(error, "Cloudinary");
+    const imageBuffer = await fs.promises.readFile(image.path);
+    const cacheKey = `remove-object:${hashValue(imageBuffer, object.toLowerCase())}`;
+    let imageURL = resultCache.get(cacheKey);
+    const cacheHit = Boolean(imageURL);
+    if (!imageURL) {
+      const { public_id } = await cloudinary.uploader
+        .upload(image.path)
+        .catch((error) => {
+          throw normalizeProviderError(error, "Cloudinary");
+        });
+      imageURL = cloudinary.url(public_id, {
+        transformation: [{ effect: `gen_remove:${object}` }],
+        resource_type: "image",
       });
-    const imageURL = cloudinary.url(public_id, {
-      transformation: [{ effect: `gen_remove:${object}` }],
-      resource_type: "image",
-    });
+      resultCache.set(cacheKey, imageURL);
+    }
 
     await createCreation({
       userId: req.userId,
@@ -335,15 +433,17 @@ export const removeImageObject = async (req, res) => {
       type: "image",
     });
 
-    fs.unlink(image.path, () => {});
     res.json({
       success: true,
       imageURL,
+      cacheHit,
       credits: consumed.user.availableCredits,
     });
   } catch (error) {
     console.error("Error in removeImageObject:", error);
     await sendError(res, error, consumed);
+  } finally {
+    safeUnlink(image?.path);
   }
 };
 
@@ -366,11 +466,21 @@ export const resumeReview = async (req, res) => {
       toolSlug: "resume-review-ai",
     });
 
-    const dataBuffer = fs.readFileSync(resume.path);
+    const dataBuffer = await fs.promises.readFile(resume.path);
     const pdfData = await pdf(dataBuffer);
-
-    const prompt = `Review the following Resume:\n\n${pdfData.text}`;
-    const content = await generateGeminiText(prompt);
+    const jobDescription = sanitizeText(req.body.jobDescription, 20000);
+    const analysis = scoreResume(pdfData.text, jobDescription);
+    const resumeChunks = chunkText(pdfData.text, {
+      maxCharacters: 6000,
+      overlapCharacters: 250,
+    }).slice(0, 4);
+    const prompt = [
+      "Review this resume. Prioritize specific, actionable improvements and do not invent facts.",
+      jobDescription ? `Target job description:\n${jobDescription}` : "",
+      `Resume (safely chunked):\n${resumeChunks.join("\n\n--- CHUNK ---\n\n")}`,
+    ].filter(Boolean).join("\n\n");
+    const aiReview = await generateGeminiText(prompt);
+    const content = `${formatAtsReport(analysis)}\n\n## AI review\n${aiReview}`;
 
     await createCreation({
       userId: req.userId,
@@ -379,10 +489,16 @@ export const resumeReview = async (req, res) => {
       type: "resume-review",
     });
 
-    fs.unlink(resume.path, () => {});
-    res.json({ success: true, content, credits: consumed.user.availableCredits });
+    res.json({
+      success: true,
+      content,
+      analysis,
+      credits: consumed.user.availableCredits,
+    });
   } catch (error) {
     console.error("Error in resumeReview:", error);
     await sendError(res, error, consumed);
+  } finally {
+    safeUnlink(req.file?.path);
   }
 };

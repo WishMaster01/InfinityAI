@@ -5,6 +5,7 @@ import { Clock3, Database, Sparkles, WalletCards } from "lucide-react";
 import CreationItem from "../components/CreationItem.jsx";
 import OutputLoader from "../components/OutputLoader.jsx";
 import { allTools } from "../data/toolCatalog.js";
+import { findItemsByDateDescending } from "../lib/dsa/binarySearch.js";
 
 const toolMap = new Map(allTools.map((tool) => [tool.slug, tool]));
 
@@ -22,6 +23,7 @@ const History = () => {
   const [creations, setCreations] = useState([]);
   const [toolUsages, setToolUsages] = useState([]);
   const [userStats, setUserStats] = useState(null);
+  const [historyDate, setHistoryDate] = useState("");
   const { getToken } = useAuth();
 
   useEffect(() => {
@@ -54,6 +56,14 @@ const History = () => {
   const totalCredits = useMemo(
     () => toolUsages.reduce((sum, usage) => sum + (usage.credits || 0), 0),
     [toolUsages]
+  );
+  const visibleCreations = useMemo(
+    () => findItemsByDateDescending(creations, historyDate, (item) => item.createdAt),
+    [creations, historyDate],
+  );
+  const visibleToolUsages = useMemo(
+    () => findItemsByDateDescending(toolUsages, historyDate, (item) => item.createdAt),
+    [toolUsages, historyDate],
   );
 
   return (
@@ -117,6 +127,23 @@ const History = () => {
           </div>
         </div>
 
+        <div className="glass-card flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <label htmlFor="history-date" className="text-sm font-black text-slate-800">Find activity by date</label>
+            <p className="mt-1 text-sm text-slate-500">Uses binary search over newest-first history.</p>
+          </div>
+          <div className="flex gap-3">
+            <input
+              id="history-date"
+              type="date"
+              value={historyDate}
+              onChange={(event) => setHistoryDate(event.target.value)}
+              className="field-input mt-0 py-3"
+            />
+            {historyDate && <button type="button" className="secondary-button py-3" onClick={() => setHistoryDate("")}>Clear</button>}
+          </div>
+        </div>
+
         {loading ? (
           <div className="tool-panel">
             <OutputLoader label="Loading your AI history" />
@@ -133,9 +160,9 @@ const History = () => {
                 </p>
               </div>
 
-              {toolUsages.length ? (
+              {visibleToolUsages.length ? (
                 <div className="space-y-3">
-                  {toolUsages.map((usage) => {
+                  {visibleToolUsages.map((usage) => {
                     const tool = toolMap.get(usage.toolSlug);
 
                     return (
@@ -180,9 +207,9 @@ const History = () => {
                 </p>
               </div>
 
-              {creations.length ? (
+              {visibleCreations.length ? (
                 <div className="space-y-3">
-                  {creations.map((item) => (
+                  {visibleCreations.map((item) => (
                     <CreationItem key={item.id} item={item} />
                   ))}
                 </div>

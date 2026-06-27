@@ -1,4 +1,9 @@
 import prisma from "../configs/db.js";
+import { PLAN_ORDER, tools } from "../config/tools.js";
+import {
+  buildUsageAnalytics,
+  recommendTools,
+} from "../utils/dsa/recommendation.js";
 
 export const syncUser = async (req, res) => {
   try {
@@ -24,14 +29,68 @@ export const syncUser = async (req, res) => {
 
 export const getUserCreations = async (req, res) => {
   try {
-    const creations = await prisma.creation.findMany({
-      where: { userId: req.userId },
-      orderBy: { createdAt: "desc" },
+    const [creations, toolUsages, popularUsage] = await Promise.all([
+      prisma.creation.findMany({
+        where: { userId: req.userId },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.toolUsage.findMany({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+      }),
+      prisma.toolUsage.groupBy({
+        by: ["toolSlug"],
+        where: { success: true },
+        _count: { toolSlug: true },
+        orderBy: { _count: { toolSlug: "desc" } },
+        take: 20,
+      }),
+    ]);
+    const popularity = new Map(
+      popularUsage.map((usage) => [usage.toolSlug, usage._count.toolSlug]),
+    );
+    const accessible = (tool) =>
+      PLAN_ORDER[tool.minPlan] <= PLAN_ORDER[req.user.currentPlan] &&
+      tool.credits <= req.user.availableCredits;
+    const recommended = recommendTools({
+      tools,
+      usages: toolUsages,
+      plan: req.user.currentPlan,
+      remainingCredits: req.user.availableCredits,
+      popularity,
     });
+    const recentSlugs = [...new Set(
+      toolUsages.filter((usage) => usage.success).map((usage) => usage.toolSlug),
+    )];
+    const continueWhereYouLeftOff = recentSlugs
+      .map((slug) => tools.find((tool) => tool.slug === slug))
+      .filter((tool) => tool && accessible(tool))
+      .slice(0, 6);
+    const popular = [...popularity.keys()]
+      .map((slug) => tools.find((tool) => tool.slug === slug))
+      .filter((tool) => tool && accessible(tool))
+      .slice(0, 6);
+    const bestForPlan = tools
+      .filter(accessible)
+      .sort((left, right) =>
+        PLAN_ORDER[right.minPlan] - PLAN_ORDER[left.minPlan] || left.credits - right.credits,
+      )
+      .slice(0, 6);
 
     res.json({
       success: true,
       creations,
+      analytics: buildUsageAnalytics(toolUsages, {
+        premiumToolSlugs: tools.filter((tool) => tool.isPremium).map((tool) => tool.slug),
+      }),
+      recommendations: recommended,
+      recommendationSections: {
+        recommended,
+        continueWhereYouLeftOff,
+        popular,
+        bestForPlan,
+      },
       user: {
         plan: req.user.currentPlan,
         availableCredits: req.user.availableCredits,

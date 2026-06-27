@@ -15,6 +15,14 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
+import ToolCard from "../components/ToolCard.jsx";
+import {
+  createToolSearchIndex,
+  searchTools,
+  suggestTools,
+} from "../lib/dsa/toolSearch.js";
+
+const toolSearchIndex = createToolSearchIndex(allTools);
 
 const Dashboard = () => {
   const [creations, setCreations] = useState([]);
@@ -27,6 +35,10 @@ const Dashboard = () => {
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
   const [upgradeTool, setUpgradeTool] = useState(null);
   const [usageStats, setUsageStats] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationSections, setRecommendationSections] = useState(null);
+  const [activeRecommendation, setActiveRecommendation] = useState("recommended");
+  const [analytics, setAnalytics] = useState(null);
   const navigate = useNavigate();
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -51,6 +63,9 @@ const Dashboard = () => {
         if (data.success) {
           setCreations(data.creations);
           setUsageStats(data.user);
+          setRecommendations(data.recommendations || []);
+          setRecommendationSections(data.recommendationSections || null);
+          setAnalytics(data.analytics || null);
           return;
         }
       } catch {
@@ -70,23 +85,21 @@ const Dashboard = () => {
   }, [categoryFilter]);
 
   const visibleTools = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-
-    return allTools.filter((tool) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        tool.name.toLowerCase().includes(normalizedSearch) ||
-        tool.description.toLowerCase().includes(normalizedSearch);
-
-      const matchesFilter =
-        activeFilter === "All Tools" ||
-        (activeFilter === "Free Tools" && !tool.isPremium) ||
-        (activeFilter === "Premium Tools" && tool.isPremium) ||
-        tool.filter === activeFilter;
-
-      return matchesSearch && matchesFilter;
-    });
+    return searchTools(toolSearchIndex, search, activeFilter);
   }, [activeFilter, search]);
+
+  const searchSuggestions = useMemo(
+    () => suggestTools(toolSearchIndex, search),
+    [search],
+  );
+  const recommendationOptions = [
+    ["recommended", "Recommended"],
+    ["continueWhereYouLeftOff", "Continue"],
+    ["popular", "Popular"],
+    ["bestForPlan", "Best for your plan"],
+  ];
+  const visibleRecommendations =
+    recommendationSections?.[activeRecommendation] || recommendations;
 
   const handleUseTool = (tool) => {
     const locked = planRank[currentPlan] < planRank[tool.minPlan];
@@ -163,7 +176,54 @@ const Dashboard = () => {
           search={search}
           onFilter={setActiveFilter}
           onSearch={setSearch}
+          suggestions={searchSuggestions}
+          onSuggestion={(tool) => setSearch(tool.name)}
         />
+
+        {!loadingWorkspace && recommendations.length > 0 && (
+          <section className="space-y-5">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.18em] text-indigo-600">
+                  Weighted recommendations
+                </p>
+                <h2 className="mt-2 text-3xl font-black text-slate-950">Best next tools for you</h2>
+              </div>
+              {analytics && (
+                <span className="chip chip-idle">
+                  {analytics.activityStreak} day activity streak
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {recommendationOptions.map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveRecommendation(key)}
+                  className={`chip shrink-0 ${activeRecommendation === key ? "chip-active" : "chip-idle"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {visibleRecommendations.slice(0, 3).map((tool) => (
+                <ToolCard
+                  key={tool.slug}
+                  tool={tool}
+                  locked={planRank[currentPlan] < planRank[tool.minPlan]}
+                  onUse={handleUseTool}
+                />
+              ))}
+            </div>
+            {!visibleRecommendations.length && (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm font-semibold text-slate-500">
+                Use a few tools to populate this recommendation view.
+              </div>
+            )}
+          </section>
+        )}
 
         <div className="space-y-10">
           {featureCategories.map((category) => (

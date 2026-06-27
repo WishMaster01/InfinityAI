@@ -10,6 +10,7 @@ const ReviewResume = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const { getToken } = useAuth();
 
   const onSubmitHandler = async (e) => {
@@ -21,6 +22,7 @@ const ReviewResume = () => {
       const token = await getToken();
       const formData = new FormData();
       formData.append("resume", input);
+      formData.append("jobDescription", jobDescription);
 
       const { data } = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/api/ai/resume-review`,
@@ -78,6 +80,18 @@ const ReviewResume = () => {
         <p className="helper-text">
           {input ? `Selected: ${input.name}` : "Supports PDF resumes only."}
         </p>
+
+        <label className="field-label" htmlFor="job-description">
+          Target Job Description (optional)
+        </label>
+        <textarea
+          id="job-description"
+          value={jobDescription}
+          onChange={(event) => setJobDescription(event.target.value)}
+          className="field-input min-h-36 resize-y"
+          placeholder="Paste the job description for skill matching and an ATS relevance score."
+          maxLength={20000}
+        />
 
         <button disabled={loading} className="gradient-button mt-8">
           {loading ? (

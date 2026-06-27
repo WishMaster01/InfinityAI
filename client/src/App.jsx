@@ -1,31 +1,34 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
-import Home from "./pages/Home.jsx";
-import About from "./pages/About.jsx";
-import Contact from "./pages/Contact.jsx";
-import Privacy from "./pages/Privacy.jsx";
-import Layout from "./pages/Layout.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
-import WriteArticle from "./pages/WriteArticle.jsx";
-import BlogTitles from "./pages/BlogTitles.jsx";
-import GenerateImages from "./pages/GenerateImages.jsx";
-import RemoveBackground from "./pages/RemoveBackground.jsx";
-import RemoveObject from "./pages/RemoveObject.jsx";
-import ReviewResume from "./pages/ReviewResume.jsx";
-import Community from "./pages/Community.jsx";
-import History from "./pages/History.jsx";
-import Billing from "./pages/Billing.jsx";
-import BillingSuccess from "./pages/BillingSuccess.jsx";
-import BillingCancel from "./pages/BillingCancel.jsx";
 import UserSync from "./components/UserSync.jsx";
+
+const Home = lazy(() => import("./pages/Home.jsx"));
+const About = lazy(() => import("./pages/About.jsx"));
+const Contact = lazy(() => import("./pages/Contact.jsx"));
+const Privacy = lazy(() => import("./pages/Privacy.jsx"));
+const Layout = lazy(() => import("./pages/Layout.jsx"));
+const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
+const WriteArticle = lazy(() => import("./pages/WriteArticle.jsx"));
+const BlogTitles = lazy(() => import("./pages/BlogTitles.jsx"));
+const GenerateImages = lazy(() => import("./pages/GenerateImages.jsx"));
+const RemoveBackground = lazy(() => import("./pages/RemoveBackground.jsx"));
+const RemoveObject = lazy(() => import("./pages/RemoveObject.jsx"));
+const ReviewResume = lazy(() => import("./pages/ReviewResume.jsx"));
+const Community = lazy(() => import("./pages/Community.jsx"));
+const History = lazy(() => import("./pages/History.jsx"));
+const Billing = lazy(() => import("./pages/Billing.jsx"));
+const BillingSuccess = lazy(() => import("./pages/BillingSuccess.jsx"));
+const BillingCancel = lazy(() => import("./pages/BillingCancel.jsx"));
+const ToolWorkspace = lazy(() => import("./pages/ToolWorkspace.jsx"));
 
 const App = () => {
   return (
     <div>
       <Toaster />
       <UserSync />
+      <Suspense fallback={<div className="page-shell flex min-h-screen items-center justify-center font-bold text-indigo-700">Loading InfinityAI...</div>}>
       <Routes>
         {/* Route for the Home page */}
         <Route path="/" element={<Home />} />
@@ -45,6 +48,7 @@ const App = () => {
           <Route path="remove-background" element={<RemoveBackground />} />
           <Route path="remove-object" element={<RemoveObject />} />
           <Route path="review-resume" element={<ReviewResume />} />
+          <Route path="tools/:toolSlug" element={<ToolWorkspace />} />
           <Route path="community" element={<Community />} />
           <Route path="history" element={<History />} />
           <Route path="billing" element={<Billing />} />
@@ -52,6 +56,7 @@ const App = () => {
           <Route path="billing/cancel" element={<BillingCancel />} />
         </Route>
       </Routes>
+      </Suspense>
     </div>
   );
 };

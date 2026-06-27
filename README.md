@@ -23,6 +23,20 @@ InfinityAI is a full-stack AI SaaS application with a React/Tailwind frontend, E
 - Markdown-formatted AI outputs with polished loading states
 - Credit tracking, plan access control, Stripe checkout, and billing summary
 - Prisma models for users, subscriptions, payments, creations, credit usage, and tool usage
+- Trie autocomplete with fuzzy tool search and category hash indexes
+- Plan-priority AI job processing with bounded concurrency
+- Server-side token-bucket rate limits and atomic credit deduction
+- LRU/SHA-256 image result deduplication for repeated processing requests
+- Deterministic resume ATS scoring using KMP matching, cosine similarity, and weighted ranking
+- Usage analytics and weighted dashboard tool recommendations
+- Token-safe document chunking, frequency analysis, and repeated-phrase detection
+- All 54 catalog tools have runnable workspaces; no dashboard card is a placeholder
+- PDF summarization, document analysis, lexical vector retrieval, and file Q&A
+- OCR and image captioning through Gemini multimodal input
+- AI image upscaling and format-aware logo, thumbnail, poster, and avatar generation
+- AST-based JavaScript code intelligence with dependency ordering and complexity checks
+- Browser speech recognition and speech synthesis for the voice assistant
+- Binary-search history lookup by date
 
 ## Tech Stack
 
@@ -51,6 +65,7 @@ InfinityAI is a full-stack AI SaaS application with a React/Tailwind frontend, E
 - Stripe
 - Multer
 - PDF Parse
+- Acorn AST parser
 
 ## Project Structure
 
@@ -112,6 +127,8 @@ CLERK_SECRET_KEY=""
 GEMINI_API_KEY=""
 GEMINI_MODEL="gemini-2.5-flash"
 CLIPDROP_API_KEY=""
+AI_QUEUE_CONCURRENCY="2"
+AI_QUEUE_MAX_SIZE="100"
 
 CLOUDINARY_CLOUD_NAME=""
 CLOUDINARY_API_KEY=""
@@ -227,6 +244,7 @@ npm run prisma:studio
 - `/ai/remove-background` - Background remover
 - `/ai/remove-object` - Object remover
 - `/ai/review-resume` - Resume review
+- `/ai/tools/:toolSlug` - Shared workspace for every additional catalog tool
 - `/ai/community` - Community gallery
 - `/ai/history` - User history
 - `/ai/billing` - Billing and plans
@@ -249,6 +267,7 @@ AI routes, protected by Clerk:
 - `POST /api/ai/remove-bg`
 - `POST /api/ai/remove-object`
 - `POST /api/ai/resume-review`
+- `POST /api/ai/tools/:toolSlug` - Protected executor for text, image, PDF, OCR, ATS, code, chat, and study workflows
 
 User routes, protected by Clerk:
 
@@ -301,10 +320,12 @@ after sign-in. The server Clerk middleware verifies the user and upserts the use
 ## AI Provider Notes
 
 - Gemini powers text generation and resume review.
+- Gemini multimodal powers OCR and image captioning.
 - `GEMINI_MODEL` defaults to `gemini-2.5-flash`.
 - Clipdrop powers text-to-image and background removal.
 - Cloudinary stores generated and processed images.
 - Object removal uses Cloudinary generative image transformations.
+- Image upscaling uses Cloudinary's `e_upscale` transformation and accepts source images below 4.2 megapixels.
 
 If a provider fails, check that the relevant `.env` key exists and that the provider account has access to the requested feature.
 
@@ -333,6 +354,7 @@ Client:
 cd "D:\AI for Everything\client"
 npm run lint
 npm run build
+npm test
 ```
 
 Server:
@@ -344,6 +366,8 @@ npm run build
 ```
 
 If `npm run build` on the server fails with a Prisma Windows `EPERM` error, stop any running server, Prisma Studio, or Node process that may be locking files inside `server/node_modules/.prisma/client`, then rerun the command.
+
+The DSA and scoring additions use the existing database models; no schema migration is required.
 
 ## Troubleshooting
 

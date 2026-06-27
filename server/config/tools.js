@@ -24,6 +24,15 @@ export const CREDIT_COSTS = {
   ADVANCED: 5,
 };
 
+const CATEGORY_ALGORITHMS = {
+  CONTENT: ["Trie autocomplete", "Frequency map", "Sliding-window text analysis", "Priority ranking"],
+  IMAGE: ["Plan-priority queue", "LRU result cache", "SHA-256 duplicate detection"],
+  CAREER: ["KMP skill matching", "Cosine similarity", "Weighted ATS scoring", "Priority ranking"],
+  PRODUCTIVITY: ["Token-safe text chunking", "Graph traversal", "Priority ranking"],
+  DEVELOPER: ["Stack validation", "Dependency graph", "Topological sort", "Pattern matching"],
+  ADVANCED: ["LRU cache", "Request queue", "Similarity search", "Token bucket"],
+};
+
 export const toolCategories = [
   {
     key: "CONTENT",
@@ -149,16 +158,20 @@ export const toolCategories = [
 
 export const tools = toolCategories.flatMap((category) =>
   category.tools.map(([slug, name, description, icon, minPlan, credits, path]) => ({
+    id: slug,
     slug,
     name,
     description,
     icon,
     minPlan,
+    requiredPlan: minPlan,
     credits,
-    path: path || null,
+    creditCost: credits,
+    path: path || `/ai/tools/${slug}`,
     category: category.key,
     categoryTitle: category.title,
     isPremium: minPlan !== "BASIC",
+    algorithmUsed: CATEGORY_ALGORITHMS[category.key],
   }))
 );
 

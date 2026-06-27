@@ -45,6 +45,17 @@ app.use("/api/user", userRouter); // requires Clerk token
 app.use("/api/tools", toolRouter);
 app.use("/api/billing", billingRouter);
 
+app.use((error, req, res, next) => {
+  if (!error) return next();
+  console.error("Request middleware error:", error);
+  const isUploadError = error.name === "MulterError";
+  return res.status(isUploadError ? 400 : error.statusCode || 500).json({
+    success: false,
+    message: isUploadError ? `Upload error: ${error.message}` : error.message || "Request failed.",
+    code: error.code,
+  });
+});
+
 // ❌ Remove app.use(requireAuth()) globally — control access via `auth.js` middleware per route
 
 // Global 404
