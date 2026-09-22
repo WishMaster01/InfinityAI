@@ -16,11 +16,13 @@ import {
 import multer from "multer";
 const upload = multer({
   dest: "uploads/",
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, callback) => callback(null, ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.mimetype)),
 });
 const workflowUpload = multer({
   dest: "uploads/",
-  limits: { fileSize: 10 * 1024 * 1024, fields: 10 },
+  limits: { fileSize: 10 * 1024 * 1024, fields: 10, files: 1 },
+  fileFilter: (req, file, callback) => callback(null, ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.mimetype)),
 });
 
 const aiRouter = express.Router();

@@ -38,6 +38,9 @@ export const consumeCredits = async ({ user, toolSlug, metadata }) => {
         reason: `Used ${tool.name}`,
       },
     });
+    await transaction.creditTransaction.create({
+      data: { userId: user.id, type: "TOOL_USAGE", amount: -tool.credits, balanceAfter: user.availableCredits - tool.credits, toolSlug: tool.slug, reason: `Used ${tool.name}` },
+    });
     const createdToolUsage = await transaction.toolUsage.create({
       data: {
         userId: user.id,
@@ -58,29 +61,14 @@ export const consumeCredits = async ({ user, toolSlug, metadata }) => {
 
 export const refundCredits = async ({ userId, tool, usageId, reason }) => {
   if (!tool?.credits) return;
-
-  const operations = [
-    prisma.user.update({
-      where: { id: userId },
-      data: {
-        availableCredits: { increment: tool.credits },
-        usedCredits: { decrement: tool.credits },
-      },
-    }),
-    prisma.creditUsage.create({
-      data: {
-        userId,
-        toolSlug: tool.slug,
-        action: "REFUND",
-        credits: tool.credits,
-        reason: reason || `Refunded ${tool.name}`,
-      },
-    }),
-  ];
-  if (usageId) {
-    operations.push(
-      prisma.toolUsage.update({ where: { id: usageId }, data: { success: false } }),
-    );
-  }
-  await prisma.$transaction(operations);
+  await prisma.$transaction(async (transaction) => {
+    if (usageId) {
+      const usage = await transaction.toolUsage.findUnique({ where: { id: usageId }, select: { success: true } });
+      if (!usage?.success) return;
+    }
+    const updated = await transaction.user.update({ where: { id: userId }, data: { availableCredits: { increment: tool.credits }, usedCredits: { decrement: tool.credits } }, select: { availableCredits: true } });
+    await transaction.creditUsage.create({ data: { userId, toolSlug: tool.slug, action: "REFUND", credits: tool.credits, reason: reason || `Refunded ${tool.name}` } });
+    await transaction.creditTransaction.create({ data: { userId, type: "REFUND", amount: tool.credits, balanceAfter: updated.availableCredits, toolSlug: tool.slug, reason: reason || `Refunded ${tool.name}` } });
+    if (usageId) await transaction.toolUsage.update({ where: { id: usageId }, data: { success: false } });
+  });
 };

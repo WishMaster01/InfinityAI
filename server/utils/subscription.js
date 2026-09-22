@@ -51,8 +51,6 @@ export const applyPlanToUser = async ({
       subscriptionStatus: status,
       stripeCustomerId,
       stripeSubscriptionId,
-      availableCredits: getCreditsForPlan(normalizedPlan),
-      usedCredits: 0,
     },
   });
 };

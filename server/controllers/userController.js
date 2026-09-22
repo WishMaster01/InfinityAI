@@ -33,11 +33,13 @@ export const getUserCreations = async (req, res) => {
       prisma.creation.findMany({
         where: { userId: req.userId },
         orderBy: { createdAt: "desc" },
+        take: Math.min(Number(req.query.limit) || 25, 100),
+        ...(req.query.cursor ? { skip: 1, cursor: { id: Number(req.query.cursor) } } : {}),
       }),
       prisma.toolUsage.findMany({
         where: { userId: req.user.id },
         orderBy: { createdAt: "desc" },
-        take: 500,
+        take: Math.min(Number(req.query.limit) || 25, 100),
       }),
       prisma.toolUsage.groupBy({
         by: ["toolSlug"],
@@ -114,7 +116,7 @@ export const getUserHistory = async (req, res) => {
       prisma.toolUsage.findMany({
         where: { userId: req.user.id },
         orderBy: { createdAt: "desc" },
-        take: 100,
+        take: Math.min(Number(req.query.limit) || 25, 100),
       }),
     ]);
 
@@ -140,6 +142,8 @@ export const getPublishedCreations = async (req, res) => {
     const creations = await prisma.creation.findMany({
       where: { publish: true },
       orderBy: { createdAt: "desc" },
+      take: Math.min(Number(req.query.limit) || 25, 100),
+      ...(req.query.cursor ? { skip: 1, cursor: { id: Number(req.query.cursor) } } : {}),
     });
 
     res.json({ success: true, creations });
@@ -169,20 +173,13 @@ export const toggleLikeCraetion = async (req, res) => {
       return res.json({ success: false, message: "Creation not found." });
     }
 
-    const currentLikes = creation.likes ?? [];
-    const isLiked = currentLikes.includes(userId);
-    const updatedLikes = isLiked
-      ? currentLikes.filter((likedUserId) => likedUserId !== userId)
-      : [...currentLikes, userId];
-
-    await prisma.creation.update({
-      where: { id: creationId },
-      data: { likes: updatedLikes },
-    });
+    const existing = await prisma.creationLike.findUnique({ where: { creationId_userId: { creationId, userId } } });
+    if (existing) await prisma.creationLike.delete({ where: { creationId_userId: { creationId, userId } } });
+    else await prisma.creationLike.create({ data: { creationId, userId } });
 
     res.json({
       success: true,
-      message: isLiked ? "Creation unliked." : "Creation liked.",
+      message: existing ? "Creation unliked." : "Creation liked.",
     });
   } catch (error) {
     console.error("Error in toggleLikeCraetion:", error);

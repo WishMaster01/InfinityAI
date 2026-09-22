@@ -9,8 +9,17 @@ import userRouter from "./routes/userRoutes.js";
 import toolRouter from "./routes/toolRoutes.js";
 import billingRouter from "./routes/billingRoutes.js";
 import { stripeWebhook } from "./controllers/billingController.js";
+import crypto from "crypto";
+import prisma from "./configs/db.js";
 
 const app = express();
+
+app.use((req, res, next) => {
+  const requestId = req.get("X-Request-Id") || crypto.randomUUID();
+  req.requestId = requestId;
+  res.setHeader("X-Request-Id", requestId);
+  next();
+});
 
 await connectCloudinary();
 
@@ -35,6 +44,12 @@ app.use(express.json());
 // ✅ Clerk middleware before any routes
 app.use(clerkMiddleware());
 
+app.get("/health", (req, res) => res.json({ status: "ok" }));
+app.get("/ready", async (req, res) => {
+  try { await prisma.$queryRaw`SELECT 1`; res.json({ status: "ready" }); }
+  catch { res.status(503).json({ status: "not_ready" }); }
+});
+
 app.get("/", (req, res) => {
   res.send("SERVER IS LIVE!");
 });
@@ -51,7 +66,7 @@ app.use((error, req, res, next) => {
   const isUploadError = error.name === "MulterError";
   return res.status(isUploadError ? 400 : error.statusCode || 500).json({
     success: false,
-    message: isUploadError ? `Upload error: ${error.message}` : error.message || "Request failed.",
+    message: isUploadError ? "Invalid upload." : error.statusCode ? error.message : "Request failed.",
     code: error.code,
   });
 });
@@ -63,6 +78,14 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
+
+const shutdown = async (signal) => {
+  console.log(`Received ${signal}; shutting down gracefully.`);
+  server.close(async () => { await prisma.$disconnect(); process.exit(0); });
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+process.once("SIGTERM", () => shutdown("SIGTERM"));
+process.once("SIGINT", () => shutdown("SIGINT"));

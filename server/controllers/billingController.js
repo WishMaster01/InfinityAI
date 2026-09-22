@@ -54,7 +54,7 @@ export const getBillingSummary = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in getBillingSummary:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Unable to load billing information." });
   }
 };
 
@@ -195,6 +195,9 @@ export const stripeWebhook = async (req, res) => {
   }
 
   try {
+    if (await prisma.stripeEvent.findUnique({ where: { id: event.id } })) {
+      return res.json({ received: true, duplicate: true });
+    }
     if (event.type === "checkout.session.completed") {
       await handleCheckoutCompleted(event.data.object);
     }
@@ -213,6 +216,8 @@ export const stripeWebhook = async (req, res) => {
     if (event.type === "invoice.payment_failed") {
       await handleInvoiceFailed(event.data.object);
     }
+
+    await prisma.stripeEvent.create({ data: { id: event.id, type: event.type } });
 
     res.json({ received: true });
   } catch (error) {
