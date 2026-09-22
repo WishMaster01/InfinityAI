@@ -17,12 +17,24 @@ import multer from "multer";
 const upload = multer({
   dest: "uploads/",
   limits: { fileSize: 5 * 1024 * 1024, files: 1 },
-  fileFilter: (req, file, callback) => callback(null, ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.mimetype)),
+  fileFilter: (req, file, callback) =>
+    callback(
+      null,
+      ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(
+        file.mimetype,
+      ),
+    ),
 });
 const workflowUpload = multer({
   dest: "uploads/",
   limits: { fileSize: 10 * 1024 * 1024, fields: 10, files: 1 },
-  fileFilter: (req, file, callback) => callback(null, ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.mimetype)),
+  fileFilter: (req, file, callback) =>
+    callback(
+      null,
+      ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(
+        file.mimetype,
+      ),
+    ),
 });
 
 const aiRouter = express.Router();
@@ -37,30 +49,46 @@ aiRouter.post(
     console.log("🔥 generate-article endpoint hit!");
     next();
   },
-  queueAiRequest(generateArticle)
+  queueAiRequest(generateArticle),
 );
 
-aiRouter.post("/generate-blog-title", auth, aiRateLimit, queueAiRequest(generateBlogTitle));
+aiRouter.post(
+  "/generate-blog-title",
+  auth,
+  aiRateLimit,
+  queueAiRequest(generateBlogTitle),
+);
 // 🖼️ Image Processing Routes (ClipDrop + Cloudinary)
 
-aiRouter.post("/generate-image", auth, aiRateLimit, queueAiRequest(generateImage));
+aiRouter.post(
+  "/generate-image",
+  auth,
+  aiRateLimit,
+  queueAiRequest(generateImage),
+);
 aiRouter.post(
   "/remove-bg",
   auth,
   aiRateLimit,
   upload.single("image"),
-  queueAiRequest(removeImageBackground)
+  queueAiRequest(removeImageBackground),
 );
 aiRouter.post(
   "/remove-object",
   auth,
   aiRateLimit,
   upload.single("image"),
-  queueAiRequest(removeImageObject)
+  queueAiRequest(removeImageObject),
 );
 // 📄 Resume Review via PDF Upload
 
-aiRouter.post("/resume-review", auth, aiRateLimit, upload.single("resume"), queueAiRequest(resumeReview));
+aiRouter.post(
+  "/resume-review",
+  auth,
+  aiRateLimit,
+  upload.single("resume"),
+  queueAiRequest(resumeReview),
+);
 
 // Shared executor keeps all catalog workflows under the same auth, plan,
 // credit, rate-limit, queue, persistence, and upload-safety contract.

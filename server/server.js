@@ -46,8 +46,12 @@ app.use(clerkMiddleware());
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 app.get("/ready", async (req, res) => {
-  try { await prisma.$queryRaw`SELECT 1`; res.json({ status: "ready" }); }
-  catch { res.status(503).json({ status: "not_ready" }); }
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: "ready" });
+  } catch {
+    res.status(503).json({ status: "not_ready" });
+  }
 });
 
 app.get("/", (req, res) => {
@@ -66,7 +70,11 @@ app.use((error, req, res, next) => {
   const isUploadError = error.name === "MulterError";
   return res.status(isUploadError ? 400 : error.statusCode || 500).json({
     success: false,
-    message: isUploadError ? "Invalid upload." : error.statusCode ? error.message : "Request failed.",
+    message: isUploadError
+      ? "Invalid upload."
+      : error.statusCode
+        ? error.message
+        : "Request failed.",
     code: error.code,
   });
 });
@@ -84,7 +92,10 @@ const server = app.listen(PORT, () => {
 
 const shutdown = async (signal) => {
   console.log(`Received ${signal}; shutting down gracefully.`);
-  server.close(async () => { await prisma.$disconnect(); process.exit(0); });
+  server.close(async () => {
+    await prisma.$disconnect();
+    process.exit(0);
+  });
   setTimeout(() => process.exit(1), 10000).unref();
 };
 process.once("SIGTERM", () => shutdown("SIGTERM"));

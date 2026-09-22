@@ -34,7 +34,9 @@ export const getUserCreations = async (req, res) => {
         where: { userId: req.userId },
         orderBy: { createdAt: "desc" },
         take: Math.min(Number(req.query.limit) || 25, 100),
-        ...(req.query.cursor ? { skip: 1, cursor: { id: Number(req.query.cursor) } } : {}),
+        ...(req.query.cursor
+          ? { skip: 1, cursor: { id: Number(req.query.cursor) } }
+          : {}),
       }),
       prisma.toolUsage.findMany({
         where: { userId: req.user.id },
@@ -62,9 +64,13 @@ export const getUserCreations = async (req, res) => {
       remainingCredits: req.user.availableCredits,
       popularity,
     });
-    const recentSlugs = [...new Set(
-      toolUsages.filter((usage) => usage.success).map((usage) => usage.toolSlug),
-    )];
+    const recentSlugs = [
+      ...new Set(
+        toolUsages
+          .filter((usage) => usage.success)
+          .map((usage) => usage.toolSlug),
+      ),
+    ];
     const continueWhereYouLeftOff = recentSlugs
       .map((slug) => tools.find((tool) => tool.slug === slug))
       .filter((tool) => tool && accessible(tool))
@@ -75,8 +81,10 @@ export const getUserCreations = async (req, res) => {
       .slice(0, 6);
     const bestForPlan = tools
       .filter(accessible)
-      .sort((left, right) =>
-        PLAN_ORDER[right.minPlan] - PLAN_ORDER[left.minPlan] || left.credits - right.credits,
+      .sort(
+        (left, right) =>
+          PLAN_ORDER[right.minPlan] - PLAN_ORDER[left.minPlan] ||
+          left.credits - right.credits,
       )
       .slice(0, 6);
 
@@ -84,7 +92,9 @@ export const getUserCreations = async (req, res) => {
       success: true,
       creations,
       analytics: buildUsageAnalytics(toolUsages, {
-        premiumToolSlugs: tools.filter((tool) => tool.isPremium).map((tool) => tool.slug),
+        premiumToolSlugs: tools
+          .filter((tool) => tool.isPremium)
+          .map((tool) => tool.slug),
       }),
       recommendations: recommended,
       recommendationSections: {
@@ -143,7 +153,9 @@ export const getPublishedCreations = async (req, res) => {
       where: { publish: true },
       orderBy: { createdAt: "desc" },
       take: Math.min(Number(req.query.limit) || 25, 100),
-      ...(req.query.cursor ? { skip: 1, cursor: { id: Number(req.query.cursor) } } : {}),
+      ...(req.query.cursor
+        ? { skip: 1, cursor: { id: Number(req.query.cursor) } }
+        : {}),
     });
 
     res.json({ success: true, creations });
@@ -173,8 +185,13 @@ export const toggleLikeCraetion = async (req, res) => {
       return res.json({ success: false, message: "Creation not found." });
     }
 
-    const existing = await prisma.creationLike.findUnique({ where: { creationId_userId: { creationId, userId } } });
-    if (existing) await prisma.creationLike.delete({ where: { creationId_userId: { creationId, userId } } });
+    const existing = await prisma.creationLike.findUnique({
+      where: { creationId_userId: { creationId, userId } },
+    });
+    if (existing)
+      await prisma.creationLike.delete({
+        where: { creationId_userId: { creationId, userId } },
+      });
     else await prisma.creationLike.create({ data: { creationId, userId } });
 
     res.json({

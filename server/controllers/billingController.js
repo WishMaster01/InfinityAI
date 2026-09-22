@@ -54,7 +54,9 @@ export const getBillingSummary = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in getBillingSummary:", error);
-    res.status(500).json({ success: false, message: "Unable to load billing information." });
+    res
+      .status(500)
+      .json({ success: false, message: "Unable to load billing information." });
   }
 };
 
@@ -157,7 +159,7 @@ export const cancelSubscription = async (req, res) => {
 
     const subscription = await stripe.subscriptions.update(
       req.user.stripeSubscriptionId,
-      { cancel_at_period_end: true }
+      { cancel_at_period_end: true },
     );
 
     await prisma.subscription.updateMany({
@@ -188,7 +190,7 @@ export const stripeWebhook = async (req, res) => {
     event = stripe.webhooks.constructEvent(
       req.body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (error) {
     return res.status(400).send(`Webhook Error: ${error.message}`);
@@ -217,7 +219,9 @@ export const stripeWebhook = async (req, res) => {
       await handleInvoiceFailed(event.data.object);
     }
 
-    await prisma.stripeEvent.create({ data: { id: event.id, type: event.type } });
+    await prisma.stripeEvent.create({
+      data: { id: event.id, type: event.type },
+    });
 
     res.json({ received: true });
   } catch (error) {

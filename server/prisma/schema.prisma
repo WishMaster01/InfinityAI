@@ -62,13 +62,13 @@ model User {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
-  subscriptions Subscription[]
-  payments      Payment[]
-  creditUsages  CreditUsage[]
-  toolUsages    ToolUsage[]
+  subscriptions      Subscription[]
+  payments           Payment[]
+  creditUsages       CreditUsage[]
+  toolUsages         ToolUsage[]
   creditTransactions CreditTransaction[]
-  creationLikes CreationLike[]
-  creations Creation[]
+  creationLikes      CreationLike[]
+  creations          Creation[]
 
   @@index([currentPlan])
   @@index([subscriptionStatus])
@@ -130,7 +130,7 @@ model Creation {
   createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   creationLikes CreationLike[]
 
   @@index([userId, createdAt])
@@ -165,34 +165,37 @@ enum CreditTransactionType {
 }
 
 model CreditTransaction {
-  id String @id @default(cuid())
-  userId String
-  type CreditTransactionType
-  amount Int
+  id           String                @id @default(cuid())
+  userId       String
+  type         CreditTransactionType
+  amount       Int
   balanceAfter Int
-  toolSlug String?
-  referenceId String?
-  reason String?
-  createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toolSlug     String?
+  referenceId  String?
+  reason       String?
+  createdAt    DateTime              @default(now())
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, referenceId])
   @@index([userId, createdAt])
   @@map("credit_transactions")
 }
 
 model StripeEvent {
-  id String @id
-  type String
+  id          String   @id
+  type        String
   processedAt DateTime @default(now())
+
   @@map("stripe_events")
 }
 
 model CreationLike {
   creationId Int
-  userId String
-  createdAt DateTime @default(now())
-  creation Creation @relation(fields: [creationId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  createdAt  DateTime @default(now())
+  creation   Creation @relation(fields: [creationId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@id([creationId, userId])
   @@index([userId, createdAt])
   @@map("creation_likes")
