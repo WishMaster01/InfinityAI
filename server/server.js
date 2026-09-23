@@ -11,6 +11,7 @@ import billingRouter from "./routes/billingRoutes.js";
 import { stripeWebhook } from "./controllers/billingController.js";
 import crypto from "crypto";
 import prisma from "./configs/db.js";
+import { redis, closeRedis } from "./configs/redis.js";
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.get("/health", (req, res) => res.json({ status: "ok" }));
 app.get("/ready", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
+    if (redis) await redis.ping();
     res.json({ status: "ready" });
   } catch {
     res.status(503).json({ status: "not_ready" });
@@ -94,6 +96,7 @@ const shutdown = async (signal) => {
   console.log(`Received ${signal}; shutting down gracefully.`);
   server.close(async () => {
     await prisma.$disconnect();
+    await closeRedis();
     process.exit(0);
   });
   setTimeout(() => process.exit(1), 10000).unref();

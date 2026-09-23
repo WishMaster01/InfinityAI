@@ -1,6 +1,4 @@
-import { TokenBucketStore } from "../utils/dsa/rateLimiter.js";
-
-const buckets = new TokenBucketStore();
+import { consumeDistributed } from "../services/distributedRateLimit.js";
 const PLAN_LIMITS = {
   BASIC: { capacity: 5, refillPerSecond: 5 / 60 },
   MODERATE: { capacity: 20, refillPerSecond: 20 / 60 },
@@ -8,10 +6,14 @@ const PLAN_LIMITS = {
 };
 
 export const rateLimit = ({ keyPrefix = "global", cost = 1 } = {}) => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const key = `${keyPrefix}:${req.userId || req.ip}`;
     const limits = PLAN_LIMITS[req.plan] || PLAN_LIMITS.BASIC;
-    const result = buckets.consume(key, { ...limits, cost });
+    const result = await consumeDistributed(key, {
+      capacity: limits.capacity,
+      windowSeconds: Math.ceil(limits.capacity / limits.refillPerSecond),
+      cost,
+    });
     res.setHeader("X-RateLimit-Limit", String(limits.capacity));
     res.setHeader("X-RateLimit-Remaining", String(result.remaining));
     if (!result.allowed) {

@@ -3,14 +3,18 @@ import fs from "fs";
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import { v2 as cloudinary } from "cloudinary";
 import prisma from "../configs/db.js";
-import {
-  getWorkflow,
-  imagePromptForTool,
-} from "../config/toolWorkflows.js";
+import { getWorkflow, imagePromptForTool } from "../config/toolWorkflows.js";
 import { consumeCredits } from "../utils/credits.js";
 import { getToolOrThrow } from "../utils/accessControl.js";
-import { assertAllowedMime, requireText, sanitizeText } from "../utils/validators.js";
-import { analyzeCode, formatCodeAnalysis } from "../utils/dsa/codeIntelligence.js";
+import {
+  assertAllowedMime,
+  requireText,
+  sanitizeText,
+} from "../utils/validators.js";
+import {
+  analyzeCode,
+  formatCodeAnalysis,
+} from "../utils/dsa/codeIntelligence.js";
 import {
   buildTopicMap,
   prepareDocumentContext,
@@ -20,13 +24,22 @@ import { LruCache } from "../utils/dsa/lruCache.js";
 import { scoreResume, formatAtsReport } from "../utils/dsa/scoring.js";
 import { lcsSimilarity } from "../utils/dsa/similarity.js";
 import { buildReviewSchedule } from "../utils/dsa/spacedRepetition.js";
-import { chunkText, repeatedPhrases, tokenize, wordFrequency } from "../utils/dsa/textAnalysis.js";
+import {
+  chunkText,
+  repeatedPhrases,
+  tokenize,
+  wordFrequency,
+} from "../utils/dsa/textAnalysis.js";
 import {
   generateGeminiMultimodal,
   generateGeminiText,
   generateImageAsset,
   sendError,
 } from "./aiController.js";
+import {
+  indexDocumentChunks,
+  searchDocumentChunks,
+} from "../services/ragStore.js";
 
 const responseCache = new LruCache({ capacity: 200, ttlMs: 20 * 60 * 1000 });
 const CODE_ANALYSIS_TOOLS = new Set([
@@ -78,7 +91,10 @@ const getTextMetrics = (text) => ({
 const runTextWorkflow = async ({ req, tool, workflow }) => {
   const input = requireText(req.body.input, "Input", 50000);
   const context = sanitizeText(req.body.context, 20000);
-  const chunks = chunkText(input, { maxCharacters: 6500, overlapCharacters: 250 }).slice(0, 7);
+  const chunks = chunkText(input, {
+    maxCharacters: 6500,
+    overlapCharacters: 250,
+  }).slice(0, 7);
   let deterministicReport = "";
   let analysis = getTextMetrics(input);
 
@@ -91,9 +107,13 @@ const runTextWorkflow = async ({ req, tool, workflow }) => {
   const prompt = [
     workflow.instruction,
     context ? `Additional context or target:\n${context}` : "",
-    deterministicReport ? `Static analysis that must inform the response:\n${deterministicReport}` : "",
+    deterministicReport
+      ? `Static analysis that must inform the response:\n${deterministicReport}`
+      : "",
     `User input:\n${chunks.join("\n\n--- INPUT CHUNK ---\n\n")}`,
-  ].filter(Boolean).join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const cacheKey = `text:${hashKey(req.userId, tool.slug, input, context)}`;
   let generated = responseCache.get(cacheKey);
@@ -103,17 +123,29 @@ const runTextWorkflow = async ({ req, tool, workflow }) => {
     responseCache.set(cacheKey, generated);
   }
 
-  let content = deterministicReport ? `${deterministicReport}\n\n## AI analysis\n${generated}` : generated;
+  let content = deterministicReport
+    ? `${deterministicReport}\n\n## AI analysis\n${generated}`
+    : generated;
   if (["ai-paragraph-rewriter", "ai-grammar-checker"].includes(tool.slug)) {
-    analysis.similarityPercentage = Math.round(lcsSimilarity(input, generated) * 100);
+    analysis.similarityPercentage = Math.round(
+      lcsSimilarity(input, generated) * 100,
+    );
     content += `\n\n---\n**Original-to-result LCS similarity:** ${analysis.similarityPercentage}%`;
   }
   if (tool.slug === "flashcard-generator") {
-    const schedule = buildReviewSchedule({ cards: Math.max(5, Math.min(30, Math.round(tokenize(input).length / 25))) });
+    const schedule = buildReviewSchedule({
+      cards: Math.max(5, Math.min(30, Math.round(tokenize(input).length / 25))),
+    });
     analysis.reviewSchedule = schedule;
     content += `\n\n## Spaced-repetition schedule\n${schedule.map((item) => `- Round ${item.round}: ${item.reviewAt} (${item.intervalDays}-day interval)`).join("\n")}`;
   }
-  if (["ai-mind-map-generator", "ai-notes-generator", "ai-study-assistant"].includes(tool.slug)) {
+  if (
+    [
+      "ai-mind-map-generator",
+      "ai-notes-generator",
+      "ai-study-assistant",
+    ].includes(tool.slug)
+  ) {
     analysis.topicMap = buildTopicMap(input);
   }
   return { content, input, analysis, cacheHit };
@@ -159,19 +191,83 @@ const runDocumentWorkflow = async ({ req, workflow }) => {
 
   if (workflow.kind === "file-chat") {
     const conversationContext = sanitizeText(req.body.context, 12000);
-    const retrievalQuery = conversationContext ? `${conversationContext}\n${question}` : question;
-    const matches = retrieveRelevantChunks(text, retrievalQuery, 4);
-    const sourceContext = matches.map((match, index) => `[Chunk ${index + 1}, relevance ${Math.round(match.priority * 100)}%]\n${match.chunk}`).join("\n\n");
+    const retrievalQuery = conversationContext
+      ? `${conversationContext}\n${question}`
+      : question;
+    let matches;
+    const contentHash = hashKey(text);
+    const conversation = await prisma.conversation.create({
+      data: { userId: req.userId, title: question.slice(0, 120) },
+    });
+    const document = await prisma.document.upsert({
+      where: { userId_contentHash: { userId: req.userId, contentHash } },
+      create: {
+        userId: req.userId,
+        conversationId: conversation.id,
+        name: req.file.originalname || "Uploaded document",
+        mimeType: req.file.mimetype,
+        contentHash,
+        chunks: {
+          create: chunkText(text, {
+            maxCharacters: 4500,
+            overlapCharacters: 300,
+          }).map((chunk, index) => ({ chunkIndex: index, text: chunk })),
+        },
+      },
+      update: { conversationId: conversation.id },
+    });
+    matches =
+      (await searchDocumentChunks(document.id, retrievalQuery, 4).catch(
+        () => null,
+      )) || retrieveRelevantChunks(text, retrievalQuery, 4);
+    if (process.env.QDRANT_URL) {
+      const chunks = await prisma.documentChunk.findMany({
+        where: { documentId: document.id },
+        select: { id: true, chunkIndex: true, text: true },
+      });
+      await indexDocumentChunks(document.id, chunks);
+    }
+    const sourceContext = matches
+      .map(
+        (match, index) =>
+          `[Chunk ${index + 1}, relevance ${Math.round(match.priority * 100)}%]\n${match.chunk}`,
+      )
+      .join("\n\n");
     const content = await generateGeminiText(
       `Answer the latest question only from the supplied document chunks. Use the conversation only to resolve references. If the answer is absent, say so.\n\nConversation: ${conversationContext || "None"}\n\nLatest question: ${question}\n\n${sourceContext}`,
     );
-    return { content, input: question, analysis: { retrievedChunks: matches.map((match) => ({ index: match.index, relevance: Math.round(match.priority * 100) })) } };
+    const citations = matches.map((match) => ({
+      documentId: document.id,
+      chunkIndex: match.index,
+      relevance: Math.round(match.priority * 100),
+    }));
+    await prisma.conversationMessage.createMany({
+      data: [
+        { conversationId: conversation.id, role: "user", content: question },
+        {
+          conversationId: conversation.id,
+          role: "assistant",
+          content,
+          citations,
+        },
+      ],
+    });
+    return {
+      content,
+      input: question,
+      analysis: {
+        conversationId: conversation.id,
+        documentId: document.id,
+        citations,
+      },
+    };
   }
 
   const intelligence = prepareDocumentContext(text);
-  const task = workflow.kind === "pdf-summary"
-    ? "Create a document intelligence report with executive summary, ranked key points, topics, Markdown mind map, five quiz questions with answers, and ten concise flashcards."
-    : "Analyze the document for purpose, structure, central claims, evidence, risks, contradictions, topics, and recommended actions.";
+  const task =
+    workflow.kind === "pdf-summary"
+      ? "Create a document intelligence report with executive summary, ranked key points, topics, Markdown mind map, five quiz questions with answers, and ten concise flashcards."
+      : "Analyze the document for purpose, structure, central claims, evidence, risks, contradictions, topics, and recommended actions.";
   const content = await generateGeminiText(
     `${task}\nDo not invent facts beyond the extracted document.\n\nDetected topic map: ${intelligence.topicMap.breadthFirst.join(" > ")}\n\nImportant source sentences:\n${intelligence.context}`,
   );
@@ -179,28 +275,50 @@ const runDocumentWorkflow = async ({ req, workflow }) => {
 };
 
 const runImageUnderstanding = async ({ req, workflow }) => {
-  assertAllowedMime(req.file, ["image/jpeg", "image/png", "image/webp"], "image");
+  assertAllowedMime(
+    req.file,
+    ["image/jpeg", "image/png", "image/webp"],
+    "image",
+  );
   const buffer = await fs.promises.readFile(req.file.path);
-  const prompt = workflow.kind === "ocr"
-    ? "Extract all visible text exactly, preserving reading order and useful layout. Then provide a short structured summary. Mark uncertain characters explicitly."
-    : "Describe this image accurately, then provide five accessible caption variants, concise alt text, visible text, key objects, and relevant keywords.";
-  const content = await generateGeminiMultimodal(prompt, buffer, req.file.mimetype);
-  return { content, input: req.file.originalname, analysis: { mimeType: req.file.mimetype, bytes: req.file.size } };
+  const prompt =
+    workflow.kind === "ocr"
+      ? "Extract all visible text exactly, preserving reading order and useful layout. Then provide a short structured summary. Mark uncertain characters explicitly."
+      : "Describe this image accurately, then provide five accessible caption variants, concise alt text, visible text, key objects, and relevant keywords.";
+  const content = await generateGeminiMultimodal(
+    prompt,
+    buffer,
+    req.file.mimetype,
+  );
+  return {
+    content,
+    input: req.file.originalname,
+    analysis: { mimeType: req.file.mimetype, bytes: req.file.size },
+  };
 };
 
 const runUpscale = async (req) => {
-  assertAllowedMime(req.file, ["image/jpeg", "image/png", "image/webp"], "image");
+  assertAllowedMime(
+    req.file,
+    ["image/jpeg", "image/png", "image/webp"],
+    "image",
+  );
   const uploaded = await cloudinary.uploader.upload(req.file.path);
   if (uploaded.width * uploaded.height >= 4_200_000) {
     await cloudinary.uploader.destroy(uploaded.public_id).catch(() => {});
-    const error = new Error("AI upscale supports source images smaller than 4.2 megapixels.");
+    const error = new Error(
+      "AI upscale supports source images smaller than 4.2 megapixels.",
+    );
     error.statusCode = 400;
     throw error;
   }
   const imageUrl = cloudinary.url(uploaded.public_id, {
     secure: true,
     resource_type: "image",
-    transformation: [{ effect: "upscale" }, { quality: "auto", fetch_format: "auto" }],
+    transformation: [
+      { effect: "upscale" },
+      { quality: "auto", fetch_format: "auto" },
+    ],
   });
   return {
     imageUrl,
@@ -217,18 +335,28 @@ const runUpscale = async (req) => {
 
 export const executeToolWorkflow = async (req, res) => {
   let consumed;
+  const startedAt = Date.now();
   try {
     const tool = getToolOrThrow(req.params.toolSlug);
     const workflow = getWorkflow(tool);
     let result;
 
-    if (["pdf-summary", "document-analysis", "file-chat"].includes(workflow.kind)) {
+    if (
+      ["pdf-summary", "document-analysis", "file-chat"].includes(workflow.kind)
+    ) {
       assertAllowedMime(req.file, ["application/pdf"], "PDF");
-    } else if (["image-upscale", "image-caption", "ocr"].includes(workflow.kind)) {
-      assertAllowedMime(req.file, ["image/jpeg", "image/png", "image/webp"], "image");
+    } else if (
+      ["image-upscale", "image-caption", "ocr"].includes(workflow.kind)
+    ) {
+      assertAllowedMime(
+        req.file,
+        ["image/jpeg", "image/png", "image/webp"],
+        "image",
+      );
     } else {
       requireText(req.body.input, "Input", 50000);
-      if (workflow.kind === "ats") requireText(req.body.context, "Job description", 30000);
+      if (workflow.kind === "ats")
+        requireText(req.body.context, "Job description", 30000);
     }
 
     consumed = await consumeCredits({
@@ -239,22 +367,52 @@ export const executeToolWorkflow = async (req, res) => {
 
     if (workflow.kind === "image-generation") {
       const input = requireText(req.body.input, "Image description", 2000);
-      const generated = await generateImageAsset(imagePromptForTool(tool.slug, input));
+      const generated = await generateImageAsset(
+        imagePromptForTool(tool.slug, input),
+      );
       const aspectRatio = IMAGE_FORMATS[tool.slug];
-      const imageUrl = generated.publicId && aspectRatio
-        ? cloudinary.url(generated.publicId, {
-            secure: true,
-            transformation: [{ aspect_ratio: aspectRatio, crop: "fill", gravity: "auto" }],
-          })
-        : generated.secureUrl;
-      result = { imageUrl, content: imageUrl, input, cacheHit: generated.cacheHit };
-    } else if (workflow.kind === "image-upscale") result = await runUpscale(req);
-    else if (["image-caption", "ocr"].includes(workflow.kind)) result = await runImageUnderstanding({ req, workflow });
-    else if (["pdf-summary", "document-analysis", "file-chat"].includes(workflow.kind)) result = await runDocumentWorkflow({ req, workflow });
+      const imageUrl =
+        generated.publicId && aspectRatio
+          ? cloudinary.url(generated.publicId, {
+              secure: true,
+              transformation: [
+                { aspect_ratio: aspectRatio, crop: "fill", gravity: "auto" },
+              ],
+            })
+          : generated.secureUrl;
+      result = {
+        imageUrl,
+        content: imageUrl,
+        input,
+        cacheHit: generated.cacheHit,
+      };
+    } else if (workflow.kind === "image-upscale")
+      result = await runUpscale(req);
+    else if (["image-caption", "ocr"].includes(workflow.kind))
+      result = await runImageUnderstanding({ req, workflow });
+    else if (
+      ["pdf-summary", "document-analysis", "file-chat"].includes(workflow.kind)
+    )
+      result = await runDocumentWorkflow({ req, workflow });
     else if (workflow.kind === "ats") result = await runAtsWorkflow(req);
     else result = await runTextWorkflow({ req, tool, workflow });
 
-    await saveCreation({ userId: req.userId, tool, prompt: result.input, content: result.content });
+    await saveCreation({
+      userId: req.userId,
+      tool,
+      prompt: result.input,
+      content: result.content,
+    });
+    await prisma.toolUsage.update({
+      where: { id: consumed.toolUsage.id },
+      data: {
+        requestId: req.requestId,
+        provider: "Gemini",
+        model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+        latencyMs: Date.now() - startedAt,
+        cacheHit: Boolean(result.cacheHit),
+      },
+    });
     res.json({
       success: true,
       content: result.content,
@@ -264,6 +422,19 @@ export const executeToolWorkflow = async (req, res) => {
       credits: consumed.user.availableCredits,
     });
   } catch (error) {
+    if (consumed?.toolUsage?.id)
+      await prisma.toolUsage
+        .update({
+          where: { id: consumed.toolUsage.id },
+          data: {
+            requestId: req.requestId,
+            provider: "Gemini",
+            latencyMs: Date.now() - startedAt,
+            errorCode: error.code || "AI_WORKFLOW_FAILED",
+            success: false,
+          },
+        })
+        .catch(() => {});
     console.error(`Error in workflow ${req.params.toolSlug}:`, error);
     await sendError(res, error, consumed);
   } finally {

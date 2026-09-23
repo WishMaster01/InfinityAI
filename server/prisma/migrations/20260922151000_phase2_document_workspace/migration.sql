@@ -1,0 +1,15 @@
+CREATE TABLE "conversations" ("id" TEXT NOT NULL, "userId" TEXT NOT NULL, "title" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "conversations_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "conversation_messages" ("id" TEXT NOT NULL, "conversationId" TEXT NOT NULL, "role" TEXT NOT NULL, "content" TEXT NOT NULL, "citations" JSONB, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "conversation_messages_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "documents" ("id" TEXT NOT NULL, "userId" TEXT NOT NULL, "conversationId" TEXT, "name" TEXT NOT NULL, "mimeType" TEXT NOT NULL, "contentHash" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "documents_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "document_chunks" ("id" TEXT NOT NULL, "documentId" TEXT NOT NULL, "chunkIndex" INTEGER NOT NULL, "pageNumber" INTEGER, "text" TEXT NOT NULL, "metadata" JSONB, CONSTRAINT "document_chunks_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "documents_userId_contentHash_key" ON "documents"("userId", "contentHash");
+CREATE UNIQUE INDEX "document_chunks_documentId_chunkIndex_key" ON "document_chunks"("documentId", "chunkIndex");
+CREATE INDEX "conversations_userId_updatedAt_idx" ON "conversations"("userId", "updatedAt");
+CREATE INDEX "conversation_messages_conversationId_createdAt_idx" ON "conversation_messages"("conversationId", "createdAt");
+CREATE INDEX "documents_userId_createdAt_idx" ON "documents"("userId", "createdAt");
+CREATE INDEX "document_chunks_documentId_pageNumber_idx" ON "document_chunks"("documentId", "pageNumber");
+ALTER TABLE "conversations" ADD CONSTRAINT "conversations_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "conversation_messages" ADD CONSTRAINT "conversation_messages_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "conversations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "documents" ADD CONSTRAINT "documents_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "documents" ADD CONSTRAINT "documents_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "conversations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "document_chunks" ADD CONSTRAINT "document_chunks_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;

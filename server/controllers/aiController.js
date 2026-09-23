@@ -21,6 +21,7 @@ import {
   requireText,
   sanitizeText,
 } from "../utils/validators.js";
+import { withProviderReliability } from "../services/aiProvider.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -53,11 +54,16 @@ const rankGeneratedTitles = (content, prompt) => {
   for (const [index, title] of titles.entries()) {
     const cleanTitle = title.replace(/^[-*\d.)\s]+/, "");
     const lengthScore = Math.max(0, 30 - Math.abs(cleanTitle.length - 55));
-    const keywordScore = tokenize(cleanTitle).filter((word) => keywords.has(word)).length * 12;
-    heap.enqueue({ title: cleanTitle, priority: lengthScore + keywordScore - index * 0.01 });
+    const keywordScore =
+      tokenize(cleanTitle).filter((word) => keywords.has(word)).length * 12;
+    heap.enqueue({
+      title: cleanTitle,
+      priority: lengthScore + keywordScore - index * 0.01,
+    });
   }
   const ranked = [];
-  while (heap.size) ranked.push(`${ranked.length + 1}. ${heap.dequeue().title}`);
+  while (heap.size)
+    ranked.push(`${ranked.length + 1}. ${heap.dequeue().title}`);
   return ranked.join("\n") || content;
 };
 
@@ -73,7 +79,7 @@ const requireEnv = (key, label) => {
 const normalizeProviderError = (error, provider) => {
   if (error?.status === 404 && provider === "Gemini") {
     const modelError = new Error(
-      `Gemini model "${GEMINI_MODEL}" is not available for generateContent. Set GEMINI_MODEL to a supported model such as "gemini-2.5-flash" or "gemini-3.5-flash".`
+      `Gemini model "${GEMINI_MODEL}" is not available for generateContent. Set GEMINI_MODEL to a supported model such as "gemini-2.5-flash" or "gemini-3.5-flash".`,
     );
     modelError.statusCode = 502;
     modelError.code = "AI_MODEL_UNAVAILABLE";
@@ -82,7 +88,7 @@ const normalizeProviderError = (error, provider) => {
 
   if (error?.response?.status === 401 || error?.response?.status === 403) {
     const authError = new Error(
-      `${provider} rejected the API key or account permissions. Check the server .env provider key.`
+      `${provider} rejected the API key or account permissions. Check the server .env provider key.`,
     );
     authError.statusCode = 502;
     authError.code = "AI_PROVIDER_AUTH_FAILED";
@@ -91,7 +97,7 @@ const normalizeProviderError = (error, provider) => {
 
   if (error?.http_code === 401 || error?.http_code === 403) {
     const authError = new Error(
-      `${provider} rejected the API key, account permissions, or enabled feature set.`
+      `${provider} rejected the API key, account permissions, or enabled feature set.`,
     );
     authError.statusCode = 502;
     authError.code = "AI_PROVIDER_AUTH_FAILED";
@@ -106,7 +112,9 @@ export const generateGeminiText = async (prompt) => {
 
   try {
     const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-    const result = await model.generateContent(prompt);
+    const result = await withProviderReliability(() =>
+      model.generateContent(prompt),
+    );
     const response = await result.response;
     return response.text();
   } catch (error) {
@@ -118,10 +126,17 @@ export const generateGeminiMultimodal = async (prompt, buffer, mimeType) => {
   requireEnv("GEMINI_API_KEY", "Gemini API key");
   try {
     const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-    const result = await model.generateContent([
-      prompt,
-      { inlineData: { data: Buffer.from(buffer).toString("base64"), mimeType } },
-    ]);
+    const result = await withProviderReliability(() =>
+      model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: Buffer.from(buffer).toString("base64"),
+            mimeType,
+          },
+        },
+      ]),
+    );
     const response = await result.response;
     return response.text();
   } catch (error) {
@@ -135,11 +150,14 @@ const requireCloudinaryConfig = () => {
   requireEnv("CLOUDINARY_API_SECRET", "Cloudinary API secret");
 };
 
-const uploadImageBufferToCloudinary = async (buffer, mimeType = "image/png") => {
+const uploadImageBufferToCloudinary = async (
+  buffer,
+  mimeType = "image/png",
+) => {
   requireCloudinaryConfig();
 
   const base64Image = `data:${mimeType};base64,${Buffer.from(buffer).toString(
-    "base64"
+    "base64",
   )}`;
 
   return cloudinary.uploader.upload(base64Image).catch((error) => {
@@ -185,8 +203,12 @@ export const generateImageAsset = async (prompt) => {
     formData.append("prompt", prompt);
     const { data } = await axios
       .post("https://clipdrop-api.co/text-to-image/v1", formData, {
-        headers: { ...formData.getHeaders(), "x-api-key": process.env.CLIPDROP_API_KEY },
+        headers: {
+          ...formData.getHeaders(),
+          "x-api-key": process.env.CLIPDROP_API_KEY,
+        },
         responseType: "arraybuffer",
+        timeout: Number(process.env.AI_PROVIDER_TIMEOUT_MS) || 45000,
       })
       .catch((error) => {
         throw normalizeProviderError(error, "Clipdrop");
@@ -292,7 +314,8 @@ export const generateImage = async (req, res) => {
       toolSlug: "ai-image-generator",
     });
 
-    const { secureUrl: secure_url, cacheHit } = await generateImageAsset(prompt);
+    const { secureUrl: secure_url, cacheHit } =
+      await generateImageAsset(prompt);
 
     await createCreation({
       userId: req.userId,
@@ -324,7 +347,7 @@ export const removeImageBackground = async (req, res) => {
     assertAllowedMime(
       image,
       ["image/jpeg", "image/png", "image/webp"],
-      "image"
+      "image",
     );
 
     consumed = await consumeCredits({
@@ -351,6 +374,7 @@ export const removeImageBackground = async (req, res) => {
             accept: "image/png",
           },
           responseType: "arraybuffer",
+          timeout: Number(process.env.AI_PROVIDER_TIMEOUT_MS) || 45000,
         })
         .catch((error) => {
           throw normalizeProviderError(error, "Clipdrop");
@@ -394,7 +418,7 @@ export const removeImageObject = async (req, res) => {
     assertAllowedMime(
       image,
       ["image/jpeg", "image/png", "image/webp"],
-      "image"
+      "image",
     );
 
     if (!object) {
@@ -478,7 +502,9 @@ export const resumeReview = async (req, res) => {
       "Review this resume. Prioritize specific, actionable improvements and do not invent facts.",
       jobDescription ? `Target job description:\n${jobDescription}` : "",
       `Resume (safely chunked):\n${resumeChunks.join("\n\n--- CHUNK ---\n\n")}`,
-    ].filter(Boolean).join("\n\n");
+    ]
+      .filter(Boolean)
+      .join("\n\n");
     const aiReview = await generateGeminiText(prompt);
     const content = `${formatAtsReport(analysis)}\n\n## AI review\n${aiReview}`;
 
