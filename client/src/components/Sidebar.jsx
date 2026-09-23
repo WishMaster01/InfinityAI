@@ -8,18 +8,17 @@ import {
   GraduationCap,
   Hash,
   House,
-  Image,
   LogOut,
   CreditCard,
   Clock3,
-  Scissors,
   Sparkles,
+  Scissors,
   SquarePen,
   Users,
 } from "lucide-react";
 import React from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { allTools, featureCategories } from "../data/toolCatalog.js";
+import { featureCategories } from "../data/toolCatalog.js";
 
 const categoryIcons = {
   Bot,
@@ -34,19 +33,6 @@ const categoryIcons = {
   Sparkles,
   SquarePen,
 };
-
-const topToolSlugs = [
-  "ai-article-writer",
-  "ai-image-generator",
-  "resume-review-ai",
-  "blog-title-generator",
-  "background-remover",
-  "object-remover",
-];
-
-const topTools = topToolSlugs
-  .map((slug) => allTools.find((tool) => tool.slug === slug && tool.path))
-  .filter(Boolean);
 
 const workspaceItems = [
   { to: "/ai/history", label: "History", Icon: Clock3 },
@@ -120,7 +106,8 @@ const Sidebar = ({ sidebar, setSideBar }) => {
             {featureCategories.map((category) => {
               const Icon = categoryIcons[category.icon] || Bot;
               const active =
-                location.pathname === "/ai" && selectedCategory === category.filter;
+                location.pathname === "/ai" &&
+                selectedCategory === category.filter;
 
               return (
                 <Link
@@ -134,32 +121,19 @@ const Sidebar = ({ sidebar, setSideBar }) => {
                   >
                     <Icon className="h-4 w-4" />
                   </span>
-                  <span className="min-w-0 flex-1 truncate">{category.filter}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {category.filter}
+                  </span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                      active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                      active
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 text-slate-500"
                     }`}
                   >
                     {category.tools.length}
                   </span>
                 </Link>
-              );
-            })}
-
-            <p className={sectionLabelClass}>Top Tools</p>
-            {topTools.map((tool) => {
-              const IconComponent = categoryIcons[tool.icon] || Sparkles;
-
-              return (
-                <NavLink
-                  key={tool.slug}
-                  to={tool.path}
-                  onClick={closeSidebar}
-                  className={({ isActive }) => linkClass(isActive)}
-                >
-                  <IconComponent className="h-4 w-4 text-current" />
-                  <span className="min-w-0 flex-1 truncate">{tool.name}</span>
-                </NavLink>
               );
             })}
 

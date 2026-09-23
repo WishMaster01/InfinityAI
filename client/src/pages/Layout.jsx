@@ -4,6 +4,8 @@ import { assets } from "../assets/assets.js";
 import { Menu, X } from "lucide-react";
 import Sidebar from "../components/Sidebar.jsx";
 import { SignIn, useUser } from "@clerk/clerk-react";
+import Topbar from "../components/Topbar.jsx";
+import MobileNav from "../components/MobileNav.jsx";
 
 const Layout = () => {
   const navigate = useNavigate();
@@ -13,7 +15,7 @@ const Layout = () => {
 
   return user ? (
     <div className="flex h-screen flex-col items-start justify-start bg-slate-50">
-      <nav className="z-40 flex min-h-20 w-full items-center justify-between border-b border-white/70 bg-white/85 px-4 shadow-lg shadow-blue-100/50 backdrop-blur-2xl sm:px-8">
+      <nav className="z-40 flex min-h-20 w-full items-center justify-between border-b border-white/70 bg-white/85 px-4 shadow-lg shadow-blue-100/50 backdrop-blur-2xl sm:hidden">
         <img
           src={assets.infinityLogo}
           alt="InfinityAI"
@@ -33,6 +35,7 @@ const Layout = () => {
           />
         )}
       </nav>
+      <Topbar />
 
       <div className="flex h-[calc(100vh-80px)] w-full flex-1">
         <Sidebar sidebar={sidebar} setSideBar={setSideBar} />
@@ -41,6 +44,7 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
+      <MobileNav />
     </div>
   ) : (
     <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(219,234,254,0.9),transparent_28rem),radial-gradient(circle_at_bottom_right,rgba(221,214,254,0.8),transparent_28rem),linear-gradient(135deg,#ffffff,#eef8ff)] p-4">

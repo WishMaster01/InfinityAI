@@ -2,12 +2,27 @@
 
 @import "tailwindcss";
 
+:root {
+  --ia-background: #f7f8fc;
+  --ia-surface: #ffffff;
+  --ia-primary: #635bff;
+  --ia-secondary: #7c3aed;
+  --ia-accent: #06b6d4;
+  --ia-text: #111827;
+  --ia-muted: #64748b;
+  --ia-radius-card: 24px;
+  --ia-radius-control: 14px;
+  --ia-shadow-card: 0 18px 55px rgba(15, 23, 42, 0.07);
+}
+
 * {
   font-family: "Outfit", sans-serif;
 }
 
 @theme {
-  --color-primary: #5044e5;
+  --color-primary: #635bff;
+  --color-secondary: #7c3aed;
+  --color-accent: #06b6d4;
 }
 
 html {
@@ -18,11 +33,43 @@ body {
   margin: 0;
   min-width: 320px;
   overflow-x: hidden;
-  color: #0f172a;
+  color: var(--ia-text);
   background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.92) 0%, rgba(239, 246, 255, 0.95) 34%, rgba(236, 254, 255, 0.78) 62%, rgba(250, 245, 255, 0.9) 100%),
-    radial-gradient(circle at 15% 12%, rgba(125, 211, 252, 0.26), transparent 34rem),
-    radial-gradient(circle at 86% 8%, rgba(196, 181, 253, 0.24), transparent 32rem);
+    linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(239, 246, 255, 0.95) 34%,
+      rgba(236, 254, 255, 0.78) 62%,
+      rgba(250, 245, 255, 0.9) 100%
+    ),
+    radial-gradient(
+      circle at 15% 12%,
+      rgba(125, 211, 252, 0.26),
+      transparent 34rem
+    ),
+    radial-gradient(
+      circle at 86% 8%,
+      rgba(196, 181, 253, 0.24),
+      transparent 32rem
+    );
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ia-background: #080a12;
+    --ia-surface: #111421;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 #root {
@@ -35,8 +82,8 @@ a,
 input,
 textarea,
 select {
-  transition-property: color, background-color, border-color, box-shadow, opacity,
-    transform;
+  transition-property:
+    color, background-color, border-color, box-shadow, opacity, transform;
   transition-duration: 200ms;
   transition-timing-function: ease;
 }
@@ -210,4 +257,16 @@ select:focus-visible {
 
 .cl-drawerRoot {
   z-index: 10;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
