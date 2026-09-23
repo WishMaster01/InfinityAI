@@ -8,6 +8,7 @@ import connectCloudinary from "./configs/cloudinary.js";
 import userRouter from "./routes/userRoutes.js";
 import toolRouter from "./routes/toolRoutes.js";
 import billingRouter from "./routes/billingRoutes.js";
+import contactRouter from "./routes/contactRoutes.js";
 import { stripeWebhook } from "./controllers/billingController.js";
 import crypto from "crypto";
 import prisma from "./configs/db.js";
@@ -65,6 +66,7 @@ app.use("/api/ai", aiRouter); // requires Clerk token
 app.use("/api/user", userRouter); // requires Clerk token
 app.use("/api/tools", toolRouter);
 app.use("/api/billing", billingRouter);
+app.use("/api/contact", contactRouter);
 
 app.use((error, req, res, next) => {
   if (!error) return next();

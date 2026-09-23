@@ -24,7 +24,7 @@ const Billing = () => {
       const config = await authHeaders();
       const { data } = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/api/billing/summary`,
-        config
+        config,
       );
 
       if (data.success) setSummary(data);
@@ -45,7 +45,7 @@ const Billing = () => {
       const { data } = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/api/billing/checkout`,
         { plan },
-        config
+        config,
       );
 
       if (!data.success) {
@@ -75,7 +75,7 @@ const Billing = () => {
       const { data } = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/api/billing/cancel`,
         {},
-        config
+        config,
       );
 
       if (data.success) {
@@ -93,7 +93,9 @@ const Billing = () => {
 
   const currentPlan = summary?.user?.plan || "BASIC";
   const paymentStatus =
-    summary?.payments?.[0]?.status || summary?.user?.subscriptionStatus || "FREE";
+    summary?.payments?.[0]?.status ||
+    summary?.user?.subscriptionStatus ||
+    "FREE";
 
   return (
     <div className="page-shell">
@@ -156,6 +158,39 @@ const Billing = () => {
             </button>
           </div>
         </div>
+        <section className="glass-card p-6" aria-labelledby="billing-details">
+          <h2
+            id="billing-details"
+            className="text-2xl font-black text-slate-950"
+          >
+            Billing details
+          </h2>
+          <div className="mt-4 grid gap-4 text-sm text-slate-600 sm:grid-cols-3">
+            <p>
+              <strong className="text-slate-950">Credits:</strong> 1 credit
+              represents one standard AI operation; costs vary by tool.
+            </p>
+            <p>
+              <strong className="text-slate-950">Renewal:</strong> Your
+              subscription renews at the end of the current Stripe billing
+              period.
+            </p>
+            <p>
+              <strong className="text-slate-950">Cancellation:</strong>{" "}
+              Cancellation stops renewal while access remains active until the
+              period ends.
+            </p>
+          </div>
+          {summary?.subscription?.currentPeriodEnd && (
+            <p className="mt-4 font-semibold text-indigo-700">
+              Current period ends{" "}
+              {new Date(
+                summary.subscription.currentPeriodEnd,
+              ).toLocaleDateString()}
+              .
+            </p>
+          )}
+        </section>
 
         <div className="grid gap-7 lg:grid-cols-3">
           {planCards.map((card) => (

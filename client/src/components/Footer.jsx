@@ -13,10 +13,8 @@ const Footer = () => {
             alt="InfinityAI"
           />
           <p className="mt-7 max-w-xl text-base leading-8 text-slate-600">
-            <span className="font-semibold text-indigo-700">
-              InfinityAI
-            </span>{" "}
-            is The Ultimate All-in-One AI Platform for Content Creation, Image
+            <span className="font-semibold text-indigo-700">InfinityAI</span> is
+            The Ultimate All-in-One AI Platform for Content Creation, Image
             Generation, Career Growth, Productivity, and Development.
           </p>
         </div>
@@ -45,32 +43,30 @@ const Footer = () => {
                   Privacy policy
                 </Link>
               </li>
+              <li>
+                <Link className="hover:text-indigo-700" to="/terms">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link className="hover:text-indigo-700" to="/ai-disclaimer">
+                  AI Usage Disclaimer
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div className="max-w-md">
             <h2 className="mb-5 text-2xl font-black leading-tight text-slate-950">
-              Subscribe to our{" "}
-              <span className="bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">
-                InfinityAI updates
-              </span>
+              Build with practical AI
             </h2>
-            <div className="space-y-2 text-base">
-              <p className="max-w-lg leading-7 text-slate-600">
-                Get the latest product updates, AI workflow guides, and new
-                feature releases sent to your inbox weekly.
-              </p>
-              <div className="flex flex-col gap-3 pt-4 sm:flex-row">
-                <input
-                  className="field-input mt-0 sm:max-w-64"
-                  type="email"
-                  placeholder="Enter your email"
-                />
-                <button className="inline-flex h-14 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-500 px-6 text-base font-bold text-white shadow-lg shadow-indigo-200 hover:-translate-y-0.5">
-                  Subscribe
-                </button>
-              </div>
-            </div>
+            <p className="max-w-lg leading-7 text-slate-600">
+              Explore the workspace to create content, analyze documents,
+              improve career materials, and work with code.
+            </p>
+            <Link className="secondary-button mt-5" to="/ai">
+              Open workspace
+            </Link>
           </div>
         </div>
       </div>

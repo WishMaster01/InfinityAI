@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
 import { Mail, MapPin, MessageSquare, Send, Sparkles } from "lucide-react";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
@@ -25,6 +26,19 @@ const contactCards = [
 ];
 
 const Contact = () => {
+  const [sent, setSent] = useState(false);
+  const submit = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
+    try {
+      await axios.post(`${import.meta.env.VITE_BASE_URL}/api/contact`, data);
+      setSent(true);
+      form.reset();
+    } catch {
+      setSent(false);
+    }
+  };
   return (
     <main className="min-h-screen overflow-hidden bg-[linear-gradient(135deg,#ffffff_0%,#eff6ff_42%,#ecfeff_72%,#faf5ff_100%)]">
       <Navbar />
@@ -76,13 +90,12 @@ const Contact = () => {
               })}
             </div>
 
-            <form className="glass-card p-7 sm:p-9">
+            <form onSubmit={submit} className="glass-card p-7 sm:p-9">
               <h2 className="text-3xl font-black text-slate-950">
                 Send a message
               </h2>
               <p className="mt-3 text-lg leading-8 text-slate-600">
-                This contact form is styled for production UI. Connect it to
-                your preferred email or support backend when you are ready.
+                Your message is securely saved for the support team.
               </p>
 
               <label className="field-label" htmlFor="contact-name">
@@ -93,6 +106,8 @@ const Contact = () => {
                 className="field-input"
                 placeholder="Your full name"
                 type="text"
+                name="name"
+                required
               />
 
               <label className="field-label" htmlFor="contact-email">
@@ -103,6 +118,8 @@ const Contact = () => {
                 className="field-input"
                 placeholder="you@example.com"
                 type="email"
+                name="email"
+                required
               />
 
               <label className="field-label" htmlFor="contact-message">
@@ -112,11 +129,23 @@ const Contact = () => {
                 id="contact-message"
                 className="field-input min-h-40 resize-y"
                 placeholder="Tell us how we can help..."
+                name="message"
+                required
+              />
+              <label className="field-label" htmlFor="contact-subject">
+                Subject
+              </label>
+              <input
+                id="contact-subject"
+                className="field-input"
+                name="subject"
+                required
+                placeholder="How can we help?"
               />
 
-              <button type="button" className="gradient-button mt-8">
+              <button type="submit" className="gradient-button mt-8">
                 <Send className="h-5 w-5" />
-                Send Message
+                {sent ? "Message prepared" : "Send Message"}
               </button>
             </form>
           </div>

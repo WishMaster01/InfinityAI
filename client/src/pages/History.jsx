@@ -1,7 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
-import { Clock3, Database, Sparkles, WalletCards } from "lucide-react";
+import {
+  Clock3,
+  Database,
+  Download,
+  Search,
+  Sparkles,
+  WalletCards,
+} from "lucide-react";
 import CreationItem from "../components/CreationItem.jsx";
 import OutputLoader from "../components/OutputLoader.jsx";
 import { allTools } from "../data/toolCatalog.js";
@@ -24,6 +31,8 @@ const History = () => {
   const [toolUsages, setToolUsages] = useState([]);
   const [userStats, setUserStats] = useState(null);
   const [historyDate, setHistoryDate] = useState("");
+  const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
   const { getToken } = useAuth();
 
   useEffect(() => {
@@ -37,7 +46,7 @@ const History = () => {
           {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,
-          }
+          },
         );
 
         if (data.success) {
@@ -45,6 +54,8 @@ const History = () => {
           setToolUsages(data.toolUsages || []);
           setUserStats(data.user || null);
         }
+      } catch {
+        setError("Unable to load history. Please retry.");
       } finally {
         setLoading(false);
       }
@@ -53,16 +64,68 @@ const History = () => {
     fetchHistory();
   }, [getToken]);
 
+  const deleteCreation = async (id) => {
+    try {
+      const token = await getToken();
+      await axios.delete(
+        `${import.meta.env.VITE_BASE_URL}/api/user/creations/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setCreations((items) => items.filter((item) => item.id !== id));
+    } catch {
+      setError("Unable to delete this creation. Please try again.");
+    }
+  };
+  const duplicateCreation = async (id) => {
+    try {
+      const token = await getToken();
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/user/creations/${id}/duplicate`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (data.success) setCreations((items) => [data.creation, ...items]);
+    } catch {
+      setError("Unable to duplicate this creation.");
+    }
+  };
+
+  const exportHistory = () => {
+    const blob = new Blob([JSON.stringify(creations, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "infinityai-history.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const totalCredits = useMemo(
     () => toolUsages.reduce((sum, usage) => sum + (usage.credits || 0), 0),
-    [toolUsages]
+    [toolUsages],
   );
   const visibleCreations = useMemo(
-    () => findItemsByDateDescending(creations, historyDate, (item) => item.createdAt),
-    [creations, historyDate],
+    () =>
+      findItemsByDateDescending(
+        creations,
+        historyDate,
+        (item) => item.createdAt,
+      ).filter((item) =>
+        `${item.prompt} ${item.type} ${item.content}`
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+      ),
+    [creations, historyDate, search],
   );
   const visibleToolUsages = useMemo(
-    () => findItemsByDateDescending(toolUsages, historyDate, (item) => item.createdAt),
+    () =>
+      findItemsByDateDescending(
+        toolUsages,
+        historyDate,
+        (item) => item.createdAt,
+      ),
     [toolUsages, historyDate],
   );
 
@@ -100,9 +163,7 @@ const History = () => {
 
           <div className="dashboard-stat">
             <div>
-              <p className="text-sm font-semibold text-slate-500">
-                Tool Runs
-              </p>
+              <p className="text-sm font-semibold text-slate-500">Tool Runs</p>
               <h2 className="mt-2 text-4xl font-black text-slate-950">
                 {toolUsages.length}
               </h2>
@@ -129,10 +190,30 @@ const History = () => {
 
         <div className="glass-card flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <label htmlFor="history-date" className="text-sm font-black text-slate-800">Find activity by date</label>
-            <p className="mt-1 text-sm text-slate-500">Uses binary search over newest-first history.</p>
+            <label
+              htmlFor="history-date"
+              className="text-sm font-black text-slate-800"
+            >
+              Find activity by date
+            </label>
+            <p className="mt-1 text-sm text-slate-500">
+              Uses binary search over newest-first history.
+            </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
+            <label className="sr-only" htmlFor="history-search">
+              Search history
+            </label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-3 h-5 w-5 text-slate-400" />
+              <input
+                id="history-search"
+                className="field-input mt-0 py-3 pl-10"
+                placeholder="Search history"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
             <input
               id="history-date"
               type="date"
@@ -140,9 +221,34 @@ const History = () => {
               onChange={(event) => setHistoryDate(event.target.value)}
               className="field-input mt-0 py-3"
             />
-            {historyDate && <button type="button" className="secondary-button py-3" onClick={() => setHistoryDate("")}>Clear</button>}
+            {historyDate && (
+              <button
+                type="button"
+                className="secondary-button py-3"
+                onClick={() => setHistoryDate("")}
+              >
+                Clear
+              </button>
+            )}
+            <button
+              type="button"
+              className="secondary-button py-3"
+              onClick={exportHistory}
+            >
+              <Download className="h-4 w-4" />
+              Export JSON
+            </button>
           </div>
         </div>
+
+        {error && (
+          <p
+            role="alert"
+            className="rounded-2xl border border-rose-200 bg-rose-50 p-4 font-semibold text-rose-700"
+          >
+            {error}
+          </p>
+        )}
 
         {loading ? (
           <div className="tool-panel">
@@ -210,7 +316,12 @@ const History = () => {
               {visibleCreations.length ? (
                 <div className="space-y-3">
                   {visibleCreations.map((item) => (
-                    <CreationItem key={item.id} item={item} />
+                    <CreationItem
+                      key={item.id}
+                      item={item}
+                      onDelete={deleteCreation}
+                      onDuplicate={duplicateCreation}
+                    />
                   ))}
                 </div>
               ) : (

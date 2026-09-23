@@ -76,6 +76,20 @@ model User {
   @@map("users")
 }
 
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("OPEN")
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([status, createdAt])
+  @@map("contact_messages")
+}
+
 model Subscription {
   id                   String             @id @default(cuid())
   userId               String

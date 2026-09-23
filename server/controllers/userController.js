@@ -118,15 +118,38 @@ export const getUserCreations = async (req, res) => {
 
 export const getUserHistory = async (req, res) => {
   try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 25, 1), 100);
+    const search = String(req.query.q || "")
+      .trim()
+      .slice(0, 200);
+    const type = String(req.query.type || "")
+      .trim()
+      .slice(0, 80);
+    const order = req.query.sort === "oldest" ? "asc" : "desc";
     const [creations, toolUsages] = await Promise.all([
       prisma.creation.findMany({
-        where: { userId: req.userId },
-        orderBy: { createdAt: "desc" },
+        where: {
+          userId: req.userId,
+          ...(type ? { type } : {}),
+          ...(search
+            ? {
+                OR: [
+                  { prompt: { contains: search, mode: "insensitive" } },
+                  { content: { contains: search, mode: "insensitive" } },
+                ],
+              }
+            : {}),
+        },
+        orderBy: { createdAt: order },
+        take: limit,
+        ...(req.query.cursor
+          ? { skip: 1, cursor: { id: Number(req.query.cursor) } }
+          : {}),
       }),
       prisma.toolUsage.findMany({
         where: { userId: req.user.id },
-        orderBy: { createdAt: "desc" },
-        take: Math.min(Number(req.query.limit) || 25, 100),
+        orderBy: { createdAt: order },
+        take: limit,
       }),
     ]);
 
@@ -144,6 +167,37 @@ export const getUserHistory = async (req, res) => {
   } catch (error) {
     console.error("Error in getUserHistory:", error);
     res.json({ success: false, message: error.message });
+  }
+};
+
+export const duplicateCreation = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id))
+      return res
+        .status(400)
+        .json({ success: false, message: "Valid creation id is required." });
+    const original = await prisma.creation.findFirst({
+      where: { id, userId: req.user.id },
+    });
+    if (!original)
+      return res
+        .status(404)
+        .json({ success: false, message: "Creation not found." });
+    const copy = await prisma.creation.create({
+      data: {
+        userId: req.user.id,
+        prompt: `Copy of ${original.prompt}`.slice(0, 4000),
+        content: original.content,
+        type: original.type,
+        publish: false,
+      },
+    });
+    return res.status(201).json({ success: true, creation: copy });
+  } catch {
+    return res
+      .status(500)
+      .json({ success: false, message: "Unable to duplicate creation." });
   }
 };
 
@@ -201,5 +255,28 @@ export const toggleLikeCraetion = async (req, res) => {
   } catch (error) {
     console.error("Error in toggleLikeCraetion:", error);
     res.json({ success: false, message: error.message });
+  }
+};
+
+export const deleteCreation = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id))
+      return res
+        .status(400)
+        .json({ success: false, message: "Valid creation id is required." });
+    const result = await prisma.creation.deleteMany({
+      where: { id, userId: req.user.id },
+    });
+    if (!result.count)
+      return res
+        .status(404)
+        .json({ success: false, message: "Creation not found." });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting creation:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Unable to delete creation." });
   }
 };
