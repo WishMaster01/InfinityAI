@@ -9,7 +9,7 @@ const Card = ({
   React.createElement(
     component,
     {
-      className: `rounded-3xl border border-slate-200/80 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.07)] ${className}`,
+      className: `rounded-[var(--ia-radius-card)] border border-slate-200/80 bg-[var(--ia-surface)] shadow-[var(--ia-shadow-card)] ${className}`,
       ...props,
     },
     children,

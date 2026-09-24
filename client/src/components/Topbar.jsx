@@ -1,21 +1,29 @@
 import React from "react";
-import { Bell, CircleHelp, Search } from "lucide-react";
+import { Bell, CircleHelp, Menu, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 
-const Topbar = () => {
+const Topbar = ({ onMenu }) => {
   const navigate = useNavigate();
   const { user } = useUser();
   return (
-    <header className="hidden min-h-16 items-center gap-3 border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:flex sm:px-6">
+    <header className="flex min-h-16 items-center gap-3 border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6">
+      <button
+        type="button"
+        onClick={onMenu}
+        aria-label="Open navigation"
+        className="rounded-xl p-2 text-slate-600 hover:bg-indigo-50 sm:hidden"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
       <button
         type="button"
         onClick={() => navigate("/ai")}
-        className="hidden shrink-0 text-lg font-black text-slate-950 sm:block"
+        className="shrink-0 text-lg font-black text-slate-950"
       >
         Infinity<span className="text-indigo-600">AI</span>
       </button>
-      <label className="relative min-w-0 flex-1">
+      <label className="relative hidden min-w-0 flex-1 sm:block">
         <span className="sr-only">Search AI tools</span>
         <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
         <input
