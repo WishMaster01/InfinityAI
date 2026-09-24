@@ -6,7 +6,7 @@ const MobileNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const items = [
-    ["/ai", "Home", House],
+    ["/dashboard", "Home", House],
     ["/ai", "Tools", Sparkles],
     ["/ai", "Create", Plus],
     ["/ai/history", "History", Clock3],

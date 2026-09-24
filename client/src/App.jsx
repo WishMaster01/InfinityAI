@@ -12,6 +12,9 @@ const Terms = lazy(() => import("./pages/Terms.jsx"));
 const Disclaimer = lazy(() => import("./pages/Disclaimer.jsx"));
 const Layout = lazy(() => import("./pages/Layout.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
+const AIWorkspace = lazy(() => import("./pages/AIWorkspace.jsx"));
+const CategoryPage = lazy(() => import("./pages/CategoryPage.jsx"));
+const ToolDetail = lazy(() => import("./pages/ToolDetail.jsx"));
 const WriteArticle = lazy(() => import("./pages/WriteArticle.jsx"));
 const BlogTitles = lazy(() => import("./pages/BlogTitles.jsx"));
 const GenerateImages = lazy(() => import("./pages/GenerateImages.jsx"));
@@ -88,7 +91,9 @@ const App = () => {
               {/* This is the parent route for AI-related pages, using Layout */}
               <Route path="/ai" element={<Layout />}>
                 {/* Dashboard will be the default child route under /ai */}
-                <Route index element={<Dashboard />} />
+                <Route index element={<AIWorkspace />} />
+                <Route path=":category" element={<CategoryPage />} />
+                <Route path=":category/:toolSlug" element={<ToolDetail />} />
 
                 {/* These will be /ai/write-article and /ai/blog-titles */}
                 <Route path="write-article" element={<WriteArticle />} />
@@ -106,6 +111,9 @@ const App = () => {
                 <Route path="billing" element={<Billing />} />
                 <Route path="billing/success" element={<BillingSuccess />} />
                 <Route path="billing/cancel" element={<BillingCancel />} />
+              </Route>
+              <Route path="/dashboard" element={<Layout />}>
+                <Route index element={<Dashboard />} />
               </Route>
             </Routes>
           </main>

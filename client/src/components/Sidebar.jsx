@@ -45,7 +45,7 @@ const Sidebar = ({ sidebar, setSideBar }) => {
   const { signOut, openUserProfile } = useClerk();
   const location = useLocation();
   const selectedCategory = new URLSearchParams(location.search).get("category");
-  const dashboardActive = location.pathname === "/ai" && !selectedCategory;
+  const dashboardActive = location.pathname === "/dashboard";
 
   const closeSidebar = () => setSideBar(false);
 
@@ -94,7 +94,7 @@ const Sidebar = ({ sidebar, setSideBar }) => {
           <nav className="mt-4 space-y-1">
             <p className={sectionLabelClass}>Overview</p>
             <Link
-              to="/ai"
+              to="/dashboard"
               onClick={closeSidebar}
               className={linkClass(dashboardActive)}
             >
