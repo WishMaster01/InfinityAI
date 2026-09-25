@@ -7,6 +7,7 @@ import {
   FileText,
   GraduationCap,
   Hash,
+  Image,
   House,
   LogOut,
   CreditCard,
@@ -16,6 +17,10 @@ import {
   SquarePen,
   Users,
   WalletCards,
+  Settings,
+  Bell,
+  CircleHelp,
+  UserRound,
 } from "lucide-react";
 import React from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
@@ -39,6 +44,10 @@ const workspaceItems = [
   { to: "/ai/history", label: "History", Icon: Clock3 },
   { to: "/ai/documents", label: "Documents", Icon: FileText },
   { to: "/ai/credits", label: "Credits & transactions", Icon: WalletCards },
+  { to: "/ai/profile", label: "Profile", Icon: UserRound },
+  { to: "/ai/settings", label: "Settings", Icon: Settings },
+  { to: "/ai/notifications", label: "Notifications", Icon: Bell },
+  { to: "/ai/help", label: "Help center", Icon: CircleHelp },
   { to: "/ai/community", label: "Community", Icon: Users },
   { to: "/ai/billing", label: "Billing", Icon: CreditCard },
 ];

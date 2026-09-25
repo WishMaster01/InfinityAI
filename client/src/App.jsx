@@ -29,6 +29,10 @@ const BillingCancel = lazy(() => import("./pages/BillingCancel.jsx"));
 const ToolWorkspace = lazy(() => import("./pages/ToolWorkspace.jsx"));
 const Documents = lazy(() => import("./pages/Documents.jsx"));
 const Credits = lazy(() => import("./pages/Credits.jsx"));
+const Profile = lazy(() => import("./pages/Profile.jsx"));
+const Settings = lazy(() => import("./pages/Settings.jsx"));
+const Notifications = lazy(() => import("./pages/Notifications.jsx"));
+const Help = lazy(() => import("./pages/Help.jsx"));
 
 class AppErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -109,6 +113,10 @@ const App = () => {
                 <Route path="review-resume" element={<ReviewResume />} />
                 <Route path="documents" element={<Documents />} />
                 <Route path="credits" element={<Credits />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="help" element={<Help />} />
                 <Route path="tools/:toolSlug" element={<ToolWorkspace />} />
                 <Route path="community" element={<Community />} />
                 <Route path="history" element={<History />} />
