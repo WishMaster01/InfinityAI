@@ -33,6 +33,35 @@ const Profile = lazy(() => import("./pages/Profile.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const Notifications = lazy(() => import("./pages/Notifications.jsx"));
 const Help = lazy(() => import("./pages/Help.jsx"));
+const PublicInfo = lazy(() => import("./pages/PublicInfo.jsx"));
+const Pricing = lazy(() =>
+  import("./pages/PublicInfo.jsx").then((module) => ({
+    default: module.Pricing,
+  })),
+);
+const Login = lazy(() =>
+  import("./pages/AuthPages.jsx").then((module) => ({ default: module.Login })),
+);
+const Signup = lazy(() =>
+  import("./pages/AuthPages.jsx").then((module) => ({
+    default: module.Signup,
+  })),
+);
+const ForgotPassword = lazy(() =>
+  import("./pages/AuthPages.jsx").then((module) => ({
+    default: module.ForgotPassword,
+  })),
+);
+const Verification = lazy(() =>
+  import("./pages/AuthPages.jsx").then((module) => ({
+    default: module.Verification,
+  })),
+);
+const Onboarding = lazy(() =>
+  import("./pages/AuthPages.jsx").then((module) => ({
+    default: module.Onboarding,
+  })),
+);
 
 class AppErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -93,6 +122,13 @@ const App = () => {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/ai-disclaimer" element={<Disclaimer />} />
+              <Route path="/:section" element={<PublicInfo />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/sign-in/*" element={<Login />} />
+              <Route path="/sign-up/*" element={<Signup />} />
+              <Route path="/forgot-password/*" element={<ForgotPassword />} />
+              <Route path="/verify/*" element={<Verification />} />
+              <Route path="/onboarding" element={<Onboarding />} />
 
               {/* This is the parent route for AI-related pages, using Layout */}
               <Route path="/ai" element={<Layout />}>
