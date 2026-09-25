@@ -12,6 +12,7 @@ import {
 import CreationItem from "../components/CreationItem.jsx";
 import OutputLoader from "../components/OutputLoader.jsx";
 import { allTools } from "../data/toolCatalog.js";
+import Dialog from "../components/ui/Dialog.jsx";
 import { findItemsByDateDescending } from "../lib/dsa/binarySearch.js";
 
 const toolMap = new Map(allTools.map((tool) => [tool.slug, tool]));
@@ -33,6 +34,7 @@ const History = () => {
   const [historyDate, setHistoryDate] = useState("");
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
+  const [selectedCreation, setSelectedCreation] = useState(null);
   const { getToken } = useAuth();
 
   useEffect(() => {
@@ -321,6 +323,7 @@ const History = () => {
                       item={item}
                       onDelete={deleteCreation}
                       onDuplicate={duplicateCreation}
+                      onOpen={setSelectedCreation}
                     />
                   ))}
                 </div>
@@ -336,8 +339,46 @@ const History = () => {
           </div>
         )}
       </div>
+      <Dialog
+        open={Boolean(selectedCreation)}
+        onClose={() => setSelectedCreation(null)}
+        title="Creation details"
+      >
+        {selectedCreation && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-600">
+                {selectedCreation.type}
+              </p>
+              <h3 className="mt-2 text-2xl font-black text-slate-950">
+                {selectedCreation.prompt || "Saved creation"}
+              </h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Created {formatDate(selectedCreation.createdAt)}
+              </p>
+            </div>
+            {selectedCreation.type === "image" ? (
+              <img
+                src={selectedCreation.content}
+                alt={selectedCreation.prompt || "Saved creation"}
+                className="max-h-96 w-full rounded-2xl object-contain"
+              />
+            ) : (
+              <div className="max-h-96 overflow-y-auto rounded-2xl bg-slate-50 p-4">
+                <FormattedCreationContent content={selectedCreation.content} />
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 };
+
+const FormattedCreationContent = ({ content }) => (
+  <pre className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+    {content}
+  </pre>
+);
 
 export default History;

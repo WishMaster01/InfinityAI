@@ -155,6 +155,7 @@ const ToolWorkspace = () => {
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [sources, setSources] = useState([]);
   const [error, setError] = useState("");
   const { getToken } = useAuth();
 
@@ -165,6 +166,7 @@ const ToolWorkspace = () => {
     setContent("");
     setImageUrl("");
     setMessages([]);
+    setSources([]);
     setError("");
   }, [toolSlug]);
 
@@ -263,6 +265,7 @@ const ToolWorkspace = () => {
         throw new Error(data.message || "Unable to run this tool.");
       setContent(data.content || "");
       setImageUrl(data.imageUrl || "");
+      setSources(data.analysis?.citations || []);
       if (isChat) {
         setMessages((current) => [
           ...current,
@@ -494,6 +497,24 @@ const ToolWorkspace = () => {
                 </div>
               ))}
             </div>
+            {sources.length > 0 && (
+              <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-800">
+                  Retrieved sources
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {sources.map((source, index) => (
+                    <span
+                      key={`${source.documentId}-${source.chunkIndex}-${index}`}
+                      className="rounded-full bg-white px-3 py-1 text-xs font-bold text-cyan-800 shadow-sm"
+                    >
+                      Chunk {source.chunkIndex + 1} · {source.relevance}%
+                      relevant
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             {isVoice && content && (
               <button
                 type="button"

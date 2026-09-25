@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import FormattedOutput from "./FormattedOutput.jsx";
 
-const CreationItem = ({ item, onDelete, onDuplicate }) => {
+const CreationItem = ({ item, onDelete, onDuplicate, onOpen }) => {
   const [expanded, setExpanded] = useState(false);
   const createdAt = item.createdAt || item.created_at;
 
@@ -44,6 +44,16 @@ const CreationItem = ({ item, onDelete, onDuplicate }) => {
             className="rounded-full border border-indigo-200 px-3 py-2 text-xs font-bold text-indigo-700"
           >
             Duplicate
+          </button>
+        )}
+        {onOpen && (
+          <button
+            type="button"
+            aria-label="View creation details"
+            onClick={() => onOpen(item)}
+            className="rounded-full border border-cyan-200 px-3 py-2 text-xs font-bold text-cyan-700"
+          >
+            Details
           </button>
         )}
       </div>

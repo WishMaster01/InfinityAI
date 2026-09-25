@@ -36,6 +36,7 @@ const categoryIcons = {
 
 const workspaceItems = [
   { to: "/ai/history", label: "History", Icon: Clock3 },
+  { to: "/ai/documents", label: "Documents", Icon: FileText },
   { to: "/ai/community", label: "Community", Icon: Users },
   { to: "/ai/billing", label: "Billing", Icon: CreditCard },
 ];
