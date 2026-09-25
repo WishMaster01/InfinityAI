@@ -28,6 +28,7 @@ const BillingSuccess = lazy(() => import("./pages/BillingSuccess.jsx"));
 const BillingCancel = lazy(() => import("./pages/BillingCancel.jsx"));
 const ToolWorkspace = lazy(() => import("./pages/ToolWorkspace.jsx"));
 const Documents = lazy(() => import("./pages/Documents.jsx"));
+const Credits = lazy(() => import("./pages/Credits.jsx"));
 
 class AppErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -107,6 +108,7 @@ const App = () => {
                 <Route path="remove-object" element={<RemoveObject />} />
                 <Route path="review-resume" element={<ReviewResume />} />
                 <Route path="documents" element={<Documents />} />
+                <Route path="credits" element={<Credits />} />
                 <Route path="tools/:toolSlug" element={<ToolWorkspace />} />
                 <Route path="community" element={<Community />} />
                 <Route path="history" element={<History />} />

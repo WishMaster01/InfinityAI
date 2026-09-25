@@ -210,6 +210,9 @@ export const getPublishedCreations = async (req, res) => {
       ...(req.query.cursor
         ? { skip: 1, cursor: { id: Number(req.query.cursor) } }
         : {}),
+      include: {
+        user: { select: { id: true, fullName: true, imageUrl: true } },
+      },
     });
 
     res.json({ success: true, creations });

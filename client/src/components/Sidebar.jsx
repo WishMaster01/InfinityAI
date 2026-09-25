@@ -15,6 +15,7 @@ import {
   Scissors,
   SquarePen,
   Users,
+  WalletCards,
 } from "lucide-react";
 import React from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
@@ -37,6 +38,7 @@ const categoryIcons = {
 const workspaceItems = [
   { to: "/ai/history", label: "History", Icon: Clock3 },
   { to: "/ai/documents", label: "Documents", Icon: FileText },
+  { to: "/ai/credits", label: "Credits & transactions", Icon: WalletCards },
   { to: "/ai/community", label: "Community", Icon: Users },
   { to: "/ai/billing", label: "Billing", Icon: CreditCard },
 ];
