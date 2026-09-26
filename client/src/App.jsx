@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import UserSync from "./components/UserSync.jsx";
@@ -91,6 +91,17 @@ class AppErrorBoundary extends React.Component {
   }
 }
 
+const ScrollToTop = () => {
+  const location = useLocation();
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document
+      .querySelector("#main-content")
+      ?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname, location.search]);
+  return null;
+};
+
 const App = () => {
   return (
     <div>
@@ -102,6 +113,7 @@ const App = () => {
       </a>
       <Toaster />
       <UserSync />
+      <ScrollToTop />
       <AppErrorBoundary>
         <Suspense
           fallback={

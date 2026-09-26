@@ -18,7 +18,7 @@ const Navbar = () => {
         <img
           src={assets.infinityLogo}
           alt="InfinityAI"
-          className="h-14 w-auto cursor-pointer object-contain drop-shadow-sm sm:h-16"
+          className="h-16 w-auto cursor-pointer object-contain drop-shadow-sm sm:h-20"
           onClick={() => navigate("/")}
         />
 
