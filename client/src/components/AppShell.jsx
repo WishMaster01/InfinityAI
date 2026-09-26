@@ -4,21 +4,21 @@ import { SignIn, useUser } from "@clerk/clerk-react";
 import Sidebar from "./Sidebar.jsx";
 import Topbar from "./Topbar.jsx";
 import MobileNav from "./MobileNav.jsx";
+import AppLoader from "./AppLoader.jsx";
 
 const AppShell = () => {
   const { user, isLoaded } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: "auto" }); document.querySelector("main")?.scrollTo({ top: 0, left: 0, behavior: "auto" }); setSidebarOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document
+      .querySelector("main")
+      ?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    setSidebarOpen(false);
+  }, [location.pathname]);
   if (!isLoaded)
-    return (
-      <div
-        role="status"
-        className="flex min-h-screen items-center justify-center bg-[var(--ia-background)] font-semibold text-indigo-700"
-      >
-        Loading your workspace...
-      </div>
-    );
+    return <AppLoader label="Preparing your secure workspace..." />;
   if (!user)
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--ia-background)] p-4">

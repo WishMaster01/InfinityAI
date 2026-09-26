@@ -118,6 +118,12 @@ select:focus-visible {
   }
 }
 
+@keyframes loader-progress {
+  0% { transform: translateX(-140%); }
+  50% { transform: translateX(120%); }
+  100% { transform: translateX(300%); }
+}
+
 @layer components {
   .page-shell {
     @apply h-full overflow-y-auto bg-[linear-gradient(135deg,#ffffff_0%,#f7fbff_36%,#ecfeff_68%,#faf5ff_100%)] p-4 text-slate-900 sm:p-7 lg:p-10;

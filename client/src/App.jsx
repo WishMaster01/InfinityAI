@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import UserSync from "./components/UserSync.jsx";
+import AppLoader from "./components/AppLoader.jsx";
 
 const Home = lazy(() => import("./pages/Home.jsx"));
 const About = lazy(() => import("./pages/About.jsx"));
@@ -115,17 +116,7 @@ const App = () => {
       <UserSync />
       <ScrollToTop />
       <AppErrorBoundary>
-        <Suspense
-          fallback={
-            <div
-              role="status"
-              aria-live="polite"
-              className="page-shell flex min-h-screen items-center justify-center font-bold text-indigo-700"
-            >
-              Loading InfinityAI...
-            </div>
-          }
-        >
+        <Suspense fallback={<AppLoader />}>
           <main id="main-content">
             <Routes>
               {/* Route for the Home page */}
