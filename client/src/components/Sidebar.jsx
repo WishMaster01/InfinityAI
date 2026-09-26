@@ -56,7 +56,6 @@ const Sidebar = ({ sidebar, setSideBar }) => {
   const { user } = useUser();
   const { signOut, openUserProfile } = useClerk();
   const location = useLocation();
-  const selectedCategory = new URLSearchParams(location.search).get("category");
   const dashboardActive = location.pathname === "/dashboard";
 
   const closeSidebar = () => setSideBar(false);
@@ -117,14 +116,12 @@ const Sidebar = ({ sidebar, setSideBar }) => {
             <p className={sectionLabelClass}>Featured Categories</p>
             {featureCategories.map((category) => {
               const Icon = categoryIcons[category.icon] || Bot;
-              const active =
-                location.pathname === "/ai" &&
-                selectedCategory === category.filter;
+              const active = location.pathname === `/ai/${category.key.toLowerCase()}`;
 
               return (
                 <Link
                   key={category.key}
-                  to={`/ai?category=${encodeURIComponent(category.filter)}`}
+                  to={`/ai/${category.key.toLowerCase()}`}
                   onClick={closeSidebar}
                   className={linkClass(active)}
                 >

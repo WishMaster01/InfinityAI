@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { SignIn, useUser } from "@clerk/clerk-react";
 import Sidebar from "./Sidebar.jsx";
 import Topbar from "./Topbar.jsx";
@@ -8,6 +8,8 @@ import MobileNav from "./MobileNav.jsx";
 const AppShell = () => {
   const { user, isLoaded } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: "auto" }); document.querySelector("main")?.scrollTo({ top: 0, left: 0, behavior: "auto" }); setSidebarOpen(false); }, [location.pathname]);
   if (!isLoaded)
     return (
       <div

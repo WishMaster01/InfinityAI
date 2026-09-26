@@ -111,7 +111,22 @@ const Dashboard = () => {
     user?.firstName || user?.fullName?.split(" ")[0] || "Creator";
   const hasHistory = creations.length > 0 || recent.length > 0;
   const planLevel = planRank[currentPlan] ?? 0;
-  const quickCategories = useMemo(() => featureCategories.slice(0, 5), []);
+  const quickCategories = useMemo(() => {
+    const goal = user?.unsafeMetadata?.goal;
+    const preferred = {
+      content: "CONTENT",
+      documents: "PRODUCTIVITY",
+      career: "CAREER",
+      productivity: "PRODUCTIVITY",
+      code: "DEVELOPER",
+    }[goal];
+    return preferred
+      ? [
+          ...featureCategories.filter((item) => item.key === preferred),
+          ...featureCategories.filter((item) => item.key !== preferred),
+        ].slice(0, 5)
+      : featureCategories.slice(0, 5);
+  }, [user]);
 
   if (loading)
     return (

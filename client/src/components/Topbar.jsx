@@ -1,11 +1,33 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Bell, CircleHelp, Menu, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
+import axios from "axios";
 
 const Topbar = ({ onMenu }) => {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { getToken } = useAuth();
+  const [credits, setCredits] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    getToken()
+      .then((token) =>
+        axios.get(`${import.meta.env.VITE_BASE_URL}/api/user/sync`, {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }),
+      )
+      .then(({ data }) => {
+        if (active && data.success) setCredits(data.user.availableCredits);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [getToken]);
   return (
     <header className="flex min-h-16 items-center gap-3 border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6">
       <button
@@ -40,6 +62,7 @@ const Topbar = ({ onMenu }) => {
       <button
         aria-label="Help"
         type="button"
+        onClick={() => navigate("/ai/help")}
         className="hidden rounded-xl p-3 text-slate-500 hover:bg-indigo-50 hover:text-indigo-700 sm:block"
       >
         <CircleHelp className="h-5 w-5" />
@@ -47,7 +70,7 @@ const Topbar = ({ onMenu }) => {
       <button
         aria-label="Notifications"
         type="button"
-        onClick={() => navigate("/ai/billing")}
+        onClick={() => navigate("/ai/notifications")}
         className="rounded-xl p-3 text-slate-500 hover:bg-indigo-50 hover:text-indigo-700"
       >
         <Bell className="h-5 w-5" />
@@ -57,6 +80,14 @@ const Topbar = ({ onMenu }) => {
         alt={user?.fullName || "Account"}
         className="h-9 w-9 rounded-xl object-cover"
       />
+      <button
+        type="button"
+        onClick={() => navigate("/ai/credits")}
+        className="hidden rounded-xl bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 sm:block"
+        aria-label="View credits"
+      >
+        {credits ?? "Credits"}
+      </button>
     </header>
   );
 };

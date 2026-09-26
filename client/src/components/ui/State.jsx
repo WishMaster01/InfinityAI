@@ -60,3 +60,38 @@ export const OfflineState = ({ onRetry }) => (
     )}
   </div>
 );
+
+export const Skeleton = ({ className = "h-24" }) => (
+  <div
+    aria-hidden="true"
+    className={`animate-pulse rounded-2xl bg-slate-200 ${className}`}
+  />
+);
+
+export const LockedState = ({
+  title = "Premium workflow",
+  description = "Upgrade your plan to unlock this experience.",
+  onUpgrade,
+}) => (
+  <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl border border-indigo-200 bg-indigo-50 p-6 text-center">
+    <h2 className="font-black text-indigo-950">{title}</h2>
+    <p className="text-sm text-indigo-800">{description}</p>
+    {onUpgrade && <Button onClick={onUpgrade}>Upgrade to unlock</Button>}
+  </div>
+);
+
+export const SuccessState = ({ title = "All set", description }) => (
+  <div
+    role="status"
+    className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-center"
+  >
+    <h2 className="font-black text-emerald-900">{title}</h2>
+    {description && (
+      <p className="mt-1 text-sm text-emerald-800">{description}</p>
+    )}
+  </div>
+);
+
+export const UpgradePrompt = ({ onUpgrade }) => (
+  <LockedState onUpgrade={onUpgrade} />
+);

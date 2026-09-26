@@ -33,6 +33,7 @@ const Profile = lazy(() => import("./pages/Profile.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const Notifications = lazy(() => import("./pages/Notifications.jsx"));
 const Help = lazy(() => import("./pages/Help.jsx"));
+const NotFound = lazy(() => import("./pages/NotFound.jsx"));
 const PublicInfo = lazy(() => import("./pages/PublicInfo.jsx"));
 const Pricing = lazy(() =>
   import("./pages/PublicInfo.jsx").then((module) => ({
@@ -163,6 +164,7 @@ const App = () => {
               <Route path="/dashboard" element={<Layout />}>
                 <Route index element={<Dashboard />} />
               </Route>
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
         </Suspense>

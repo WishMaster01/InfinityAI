@@ -90,7 +90,7 @@ const AIWorkspace = () => {
                 type="button"
                 key={item.key}
                 onClick={() => navigate(`/ai/${item.key.toLowerCase()}`)}
-                className="rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-1 hover:shadow-lg"
+                className="rounded-3xl border border-slate-200 bg-white p-5 text-left text-slate-900 transition hover:-translate-y-1 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-950 hover:shadow-lg"
               >
                 <span
                   className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${item.gradient} text-white`}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useUser } from "@clerk/clerk-react";
 import { Bell, Check, Settings as SettingsIcon, Zap } from "lucide-react";
 import Card from "../components/ui/Card.jsx";
 
@@ -36,18 +37,12 @@ const options = [
 ];
 
 const Settings = () => {
+  const { user } = useUser();
   const [settings, setSettings] = useState(defaults);
   const [saved, setSaved] = useState(false);
   useEffect(() => {
-    try {
-      setSettings({
-        ...defaults,
-        ...JSON.parse(localStorage.getItem("infinityai-settings") || "{}"),
-      });
-    } catch {
-      setSettings(defaults);
-    }
-  }, []);
+    setSettings({ ...defaults, ...(user?.unsafeMetadata?.settings || {}) });
+  }, [user]);
   useEffect(() => {
     document.documentElement.classList.toggle(
       "reduce-motion",
@@ -59,6 +54,9 @@ const Settings = () => {
     const next = { ...settings, [key]: !settings[key] };
     setSettings(next);
     localStorage.setItem("infinityai-settings", JSON.stringify(next));
+    user
+      ?.update({ unsafeMetadata: { ...user.unsafeMetadata, settings: next } })
+      .catch(() => {});
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
