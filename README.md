@@ -2,6 +2,24 @@
 
 The Ultimate All-in-One AI Platform for Content Creation, Image Generation, Career Growth, Productivity, and Development.
 
+> InfinityAI is a bright, practical AI workspace for turning ideas into finished work. Explore focused tools, save your best results, chat with documents, manage credits, and keep your workflow in one calm place.
+
+## Welcome to InfinityAI
+
+InfinityAI brings everyday AI work into one friendly workspace. Whether you are writing an article, creating an image, improving a resume, understanding a PDF, learning a topic, or reviewing code, each workflow is designed to help you move from a clear input to a useful result.
+
+### What you can do
+
+- Discover tools from the AI Workspace by category, search, plan, and goal.
+- Create and refine writing, images, career materials, documents, and code.
+- Upload PDFs for summaries, analysis, source-grounded chat, and document intelligence.
+- Save, search, duplicate, export, and review creations in History.
+- Explore published work in the Community gallery and support creators with likes.
+- Track credits, payments, subscriptions, and plan access from Billing and Credits.
+- Personalize your workspace through onboarding, Profile, Settings, Notifications, and Help.
+
+The public website is available at `/`, while the authenticated workspace starts at `/ai`.
+
 InfinityAI is a full-stack AI SaaS application with a React/Tailwind frontend, Express backend, Clerk authentication, PostgreSQL with Prisma, Stripe billing, and AI/image integrations through Gemini, Clipdrop, and Cloudinary.
 
 ## Features
@@ -57,7 +75,7 @@ InfinityAI is a full-stack AI SaaS application with a React/Tailwind frontend, E
 - Node.js
 - Express 5
 - Clerk Express
-- Prisma 6
+- Prisma 7 with the Neon adapter
 - PostgreSQL
 - Google Generative AI SDK
 - Clipdrop API
@@ -146,6 +164,10 @@ STRIPE_MODERATE_PRICE_ID=""
 STRIPE_PRO_PRICE_ID=""
 ```
 
+### Optional services
+
+InfinityAI works best with the configured PostgreSQL/Neon database, Clerk authentication, Gemini, Clipdrop, Cloudinary, Stripe, and Redis-compatible queue settings. Features that depend on a provider show an actionable error when that provider is unavailable; local UI exploration can still use the public pages and seeded community content.
+
 Stripe price IDs must be real Stripe `price_...` IDs from the Stripe Dashboard. Do not use random values for paid plans.
 
 ## Installation
@@ -176,7 +198,36 @@ Optional Prisma Studio:
 
 ```powershell
 npm run prisma:studio
+npm run prisma:seed
 ```
+
+### Browser checks
+
+The client includes Playwright smoke and visual tests:
+
+```powershell
+cd "D:\CAUTIONS\AI for Everything\client"
+npx playwright install
+npm run test:e2e
+```
+
+The visual suite covers pricing layouts from mobile through large desktop viewports. Protected workspace tests verify the signed-out authentication boundary; authenticated E2E coverage requires a test Clerk session.
+
+## Deployment notes
+
+For Vercel, set the project Root Directory to `client`, use `npm run build` as the Build Command, and use `dist` as the Output Directory. The client includes `client/vercel.json` for Vite output and React Router rewrites.
+
+Before deploying, configure the client Clerk key, API base URL, and server provider keys for the target environment. Never commit database URLs, API secrets, Stripe keys, or Clerk secret keys.
+
+Seed demo Community content:
+
+```powershell
+cd "D:\CAUTIONS\AI for Everything\server"
+npm run prisma:generate
+npm run prisma:seed
+```
+
+The seed is safe to run repeatedly. It creates a demo creator and published image creations only when they do not already exist.
 
 ## Running Locally
 
@@ -192,6 +243,16 @@ The API runs on:
 ```text
 http://localhost:3000
 ```
+
+## A friendly first-run checklist
+
+1. Configure the client Clerk publishable key and server environment variables.
+2. Generate Prisma Client and run the optional seed command.
+3. Start the server and client in separate terminals.
+4. Open `/`, create an account, complete onboarding, and enter `/ai`.
+5. Try a free workflow before configuring paid providers or Stripe checkout.
+
+Public pages such as `/about`, `/features`, `/solutions`, `/pricing`, `/blog`, `/contact`, `/privacy`, `/terms`, and `/ai-disclaimer` can be reviewed without entering the authenticated workspace.
 
 Start the frontend:
 
@@ -227,6 +288,7 @@ npm run lint
 npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:studio
+npm run prisma:seed
 ```
 
 ## Main Routes

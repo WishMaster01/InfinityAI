@@ -55,13 +55,6 @@ body {
     );
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ia-background: #080a12;
-    --ia-surface: #111421;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -119,9 +112,15 @@ select:focus-visible {
 }
 
 @keyframes loader-progress {
-  0% { transform: translateX(-140%); }
-  50% { transform: translateX(120%); }
-  100% { transform: translateX(300%); }
+  0% {
+    transform: translateX(-140%);
+  }
+  50% {
+    transform: translateX(120%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
 }
 
 @layer components {
