@@ -6,6 +6,7 @@
   "scripts": {
     "server": "nodemon server.js",
     "start": "node server.js",
+    "postinstall": "prisma generate",
     "build": "npm run prisma:generate && node scripts/check-syntax.js",
     "lint": "eslint .",
     "test": "node --test --experimental-test-isolation=none tests/**/*.test.js",
