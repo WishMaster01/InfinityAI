@@ -1,55 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
-import { Bell, Check, Settings as SettingsIcon, Zap } from "lucide-react";
-import Card from "../components/ui/Card.jsx";
+import { Bell, Check, Settings as SettingsIcon, Zap, Shield, Eye, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const defaults = {
   productUpdates: true,
   usageAlerts: true,
   marketing: false,
-  reducedMotion: false,
+  autoSaveHistory: true,
 };
-const options = [
-  [
-    "productUpdates",
-    "Product updates",
-    "Learn about new tools and improvements.",
-    Bell,
-  ],
-  [
-    "usageAlerts",
-    "Usage alerts",
-    "Get notified when credits are running low.",
-    Zap,
-  ],
-  [
-    "marketing",
-    "Occasional product news",
-    "Receive optional tips and product news.",
-    Bell,
-  ],
-  [
-    "reducedMotion",
-    "Reduce motion",
-    "Prefer fewer animated transitions.",
-    SettingsIcon,
-  ],
-];
 
 const Settings = () => {
   const { user } = useUser();
   const [settings, setSettings] = useState(defaults);
-  const [saved, setSaved] = useState(false);
+
   useEffect(() => {
     setSettings({ ...defaults, ...(user?.unsafeMetadata?.settings || {}) });
   }, [user]);
-  useEffect(() => {
-    document.documentElement.classList.toggle(
-      "reduce-motion",
-      settings.reducedMotion,
-    );
-    return () => document.documentElement.classList.remove("reduce-motion");
-  }, [settings.reducedMotion]);
+
   const update = (key) => {
     const next = { ...settings, [key]: !settings[key] };
     setSettings(next);
@@ -57,55 +26,93 @@ const Settings = () => {
     user
       ?.update({ unsafeMetadata: { ...user.unsafeMetadata, settings: next } })
       .catch(() => {});
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+    toast.success("Preference updated");
   };
+
   return (
     <div className="page-shell">
-      <div className="content-wrap space-y-8">
-        <section className="glass-card p-8 sm:p-10">
-          <span className="section-kicker">
-            <SettingsIcon className="mr-2 h-4 w-4" />
-            Settings
-          </span>
-          <h1 className="mt-4 text-4xl font-black text-slate-950 sm:text-5xl">
-            Tune your workspace
+      <div className="content-wrap space-y-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Settings & Preferences
           </h1>
-          <p className="mt-4 text-lg leading-8 text-slate-600">
-            Control notifications and interface preferences for InfinityAI.
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+            Control your notifications, security, and AI workspace preferences.
           </p>
-        </section>
-        <Card className="divide-y divide-slate-100 p-2">
-          {options.map(([key, title, description, icon]) => (
-            <button
-              type="button"
-              key={key}
-              onClick={() => update(key)}
-              className="flex w-full items-center gap-4 rounded-2xl p-5 text-left hover:bg-slate-50"
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="border-b border-slate-100 pb-4">
+            <h2 className="text-sm font-bold text-slate-900">
+              Notification Preferences
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Choose what notifications you receive from InfinityAI
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-800">Product Updates</p>
+                <p className="text-[11px] text-slate-400">
+                  Notify me when new AI tools and models are released
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.productUpdates}
+                onChange={() => update("productUpdates")}
+                className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-800">Usage & Balance Alerts</p>
+                <p className="text-[11px] text-slate-400">
+                  Send alerts when my monthly credits are below 10%
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.usageAlerts}
+                onChange={() => update("usageAlerts")}
+                className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-800">Auto-save Creations</p>
+                <p className="text-[11px] text-slate-400">
+                  Automatically persist generated outputs into My History
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.autoSaveHistory}
+                onChange={() => update("autoSaveHistory")}
+                className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-6 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-800">Profile & Security</p>
+              <p className="text-[11px] text-slate-400">
+                Update password, two-factor auth, and personal info
+              </p>
+            </div>
+            <Link
+              to="/ai/profile"
+              className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
             >
-              {React.createElement(icon, {
-                className: "h-5 w-5 text-indigo-600",
-              })}
-              <span className="flex-1">
-                <span className="block font-black text-slate-900">{title}</span>
-                <span className="mt-1 block text-sm text-slate-500">
-                  {description}
-                </span>
-              </span>
-              <span
-                className={`flex h-7 w-12 items-center rounded-full p-1 transition ${settings[key] ? "bg-indigo-600 justify-end" : "bg-slate-200 justify-start"}`}
-              >
-                <span className="h-5 w-5 rounded-full bg-white shadow" />
-              </span>
-            </button>
-          ))}
-        </Card>
-        {saved && (
-          <p className="flex items-center gap-2 font-bold text-emerald-700">
-            <Check className="h-4 w-4" />
-            Settings saved
-          </p>
-        )}
+              Manage Profile
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

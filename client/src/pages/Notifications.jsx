@@ -7,132 +7,123 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
-const notices = [
+const initialNotices = [
   {
     id: "workspace",
-    title: "Your workspace is ready",
-    text: "Explore the AI Workspace to discover your next workflow.",
+    title: "Welcome to your new InfinityAI workspace",
+    text: "Explore 54+ intelligent AI workflows for content generation, image creation, resume analysis, and coding.",
     icon: Sparkles,
-    preference: "productUpdates",
+    time: "10 mins ago",
+    tag: "Welcome",
   },
   {
     id: "credits",
-    title: "Keep an eye on credits",
-    text: "Review usage and upgrade any time from Credits.",
+    title: "Credits reset reminder",
+    text: "Your monthly credits will automatically refresh in 14 days.",
     icon: CreditCard,
-    preference: "usageAlerts",
+    time: "2 hours ago",
+    tag: "Usage",
   },
   {
     id: "security",
-    title: "Account secure",
-    text: "Your authenticated workspace is protected and ready to use.",
+    title: "Security verified",
+    text: "Your authenticated session is active and encrypted with Clerk.",
     icon: CheckCircle2,
-    preference: "productUpdates",
+    time: "Yesterday",
+    tag: "Security",
   },
 ];
-const readKey = "infinityai-read-notifications";
 
 const Notifications = () => {
-  const [read, setRead] = useState(() =>
-    JSON.parse(localStorage.getItem(readKey) || "[]"),
-  );
-  const [settings] = useState(() => {
-    try {
-      return {
-        productUpdates: true,
-        usageAlerts: true,
-        marketing: false,
-        ...JSON.parse(localStorage.getItem("infinityai-settings") || "{}"),
-      };
-    } catch {
-      return { productUpdates: true, usageAlerts: true, marketing: false };
-    }
-  });
-  const visible = useMemo(
-    () => notices.filter((notice) => settings[notice.preference] !== false),
-    [settings],
-  );
-  const markRead = (id) => {
-    const next = [...new Set([...read, id])];
-    setRead(next);
-    localStorage.setItem(readKey, JSON.stringify(next));
+  const [notices, setNotices] = useState(initialNotices);
+
+  const dismissNotice = (id) => {
+    setNotices((curr) => curr.filter((n) => n.id !== id));
+    toast.success("Notification dismissed");
   };
+
   const markAllRead = () => {
-    const ids = visible.map((notice) => notice.id);
-    setRead((current) => {
-      const next = [...new Set([...current, ...ids])];
-      localStorage.setItem(readKey, JSON.stringify(next));
-      return next;
-    });
+    setNotices([]);
+    toast.success("All notifications cleared");
   };
+
   return (
     <div className="page-shell">
-      <div className="content-wrap space-y-8">
-        <section className="glass-card p-8 sm:p-10">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <span className="section-kicker">
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </span>
-              <h1 className="mt-4 text-4xl font-black text-slate-950 sm:text-5xl">
-                Updates for your workspace
-              </h1>
-              <p className="mt-4 text-lg leading-8 text-slate-600">
-                Important product, usage, and account updates in one place.
-              </p>
-            </div>
+      <div className="content-wrap space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Notifications
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-500">
+              Important updates, balance alerts, and security notifications.
+            </p>
+          </div>
+
+          {notices.length > 0 && (
             <button
               type="button"
               onClick={markAllRead}
-              className="secondary-button"
+              className="rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors w-fit"
             >
-              {" "}
-              <Check className="h-4 w-4" /> Mark all read
+              Clear all
             </button>
-          </div>
-        </section>
+          )}
+        </div>
+
         <div className="space-y-3">
-          {visible.length ? (
-            visible.map(({ id, title, text, icon, preference }) => (
-              <article
-                key={id}
-                className={`premium-card flex items-start gap-4 p-6 ${read.includes(id) ? "opacity-60" : ""}`}
-              >
-                {React.createElement(icon, {
-                  className: "mt-1 h-5 w-5 shrink-0 text-indigo-600",
-                })}
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-black text-slate-950">{title}</h2>
-                    {!read.includes(id) && (
-                      <span className="rounded-full bg-indigo-100 px-2 py-1 text-[10px] font-black uppercase text-indigo-700">
-                        New
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                    {text}
-                  </p>
-                  <p className="mt-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                    {preference === "usageAlerts" ? "Usage" : "Product"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  aria-label={`Dismiss ${title}`}
-                  onClick={() => markRead(id)}
-                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          {notices.length > 0 ? (
+            notices.map((notice) => {
+              const Icon = notice.icon;
+              return (
+                <div
+                  key={notice.id}
+                  className="flex items-start justify-between rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs hover:border-indigo-200 transition-all gap-4"
                 >
-                  <X className="h-4 w-4" />
-                </button>
-              </article>
-            ))
+                  <div className="flex items-start gap-3.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xs sm:text-sm font-bold text-slate-900">
+                          {notice.title}
+                        </h2>
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-100">
+                          {notice.tag}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                        {notice.text}
+                      </p>
+                      <p className="mt-2 text-[10px] font-semibold text-slate-400">
+                        {notice.time}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => dismissNotice(notice.id)}
+                    className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    title="Dismiss"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })
           ) : (
-            <div className="empty-state">
-              <Check className="h-8 w-8 text-emerald-500" />
-              <p className="font-semibold">You’re all caught up.</p>
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center text-slate-400">
+              <Check className="mx-auto h-8 w-8 text-emerald-500" />
+              <p className="mt-2 text-xs font-bold text-slate-700">
+                You're all caught up!
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                No new notifications at this time.
+              </p>
             </div>
           )}
         </div>

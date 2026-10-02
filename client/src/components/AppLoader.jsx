@@ -1,29 +1,23 @@
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { InfinityIcon } from "./InfinityLogo.jsx";
 
 const AppLoader = ({ label = "Loading your InfinityAI workspace..." }) => (
   <div
     role="status"
     aria-live="polite"
-    className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#ffffff_0%,#eef2ff_48%,#ecfeff_100%)] p-6"
+    className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50/80 p-6"
   >
-    <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-300/25 blur-3xl" />
-    <div className="relative flex w-full max-w-sm flex-col items-center text-center">
-      <div className="relative flex h-24 w-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-indigo-600 via-violet-600 to-cyan-500 text-white shadow-2xl shadow-indigo-300/60">
-        <span className="absolute inset-0 animate-ping rounded-[2rem] bg-indigo-400/30" />
-        <Sparkles className="relative h-10 w-10 animate-pulse" />
+    <div className="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-300/20 blur-3xl pointer-events-none" />
+    <div className="relative flex w-full max-w-xs flex-col items-center text-center">
+      <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-white border border-slate-200 shadow-lg shadow-indigo-100/60">
+        <InfinityIcon className="h-10 w-12" />
       </div>
-      <p className="mt-8 text-2xl font-black tracking-tight text-slate-950">
+      <p className="mt-5 text-xl font-black tracking-tight text-slate-900">
         Infinity<span className="text-indigo-600">AI</span>
       </p>
-      <p className="mt-3 text-sm font-semibold text-slate-500">{label}</p>
-      <div className="mt-7 h-2 w-full overflow-hidden rounded-full bg-white/80 shadow-inner">
-        <div className="h-full w-2/5 animate-[loader-progress_1.5s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-indigo-600 via-violet-500 to-cyan-400" />
-      </div>
-      <div className="mt-5 flex gap-1.5">
-        <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-600 [animation-delay:-.3s]" />
-        <span className="h-2 w-2 animate-bounce rounded-full bg-violet-500 [animation-delay:-.15s]" />
-        <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-500" />
+      <p className="mt-2 text-xs font-semibold text-slate-500">{label}</p>
+      <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+        <div className="h-full w-2/5 animate-[loader-progress_1.5s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-indigo-600 to-violet-600" />
       </div>
     </div>
   </div>

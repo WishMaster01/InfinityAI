@@ -1,223 +1,307 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Compass,
+  ShieldCheck,
   Sparkles,
-  WandSparkles,
+  Zap,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { planCards } from "../data/toolCatalog.js";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+import ScrollReveal from "../components/ScrollReveal.jsx";
 
-const content = {
+const pageContent = {
   features: {
-    label: "The InfinityAI toolkit",
-    title: "Create with more clarity, speed, and creative range.",
-    intro:
-      "A polished AI workspace that turns blank pages, complex documents, and ambitious ideas into useful next steps.",
+    label: "Features",
+    title: "54+ Powerful AI Tools at Your Fingertips",
+    intro: "Experience an all-in-one AI creation suite built to accelerate writing, design, programming, and career advancement.",
     items: [
-      "54+ practical AI workflows",
-      "Document chat with grounded sources",
-      "History, credits, and reusable creations",
-      "Secure plans with transparent usage",
+      "Natural language blog, copy, and article generation",
+      "High-resolution AI image generation and background removal",
+      "Comprehensive ATS resume analysis with scoring",
+      "Interactive grounded document chat with PDF citation",
+      "Automated code explanation, refactoring, and test generation",
     ],
   },
   solutions: {
-    label: "Built around outcomes",
-    title: "One intelligent workspace for every kind of work.",
-    intro:
-      "Move from first thought to finished deliverable with focused workflows for creators, professionals, students, and teams.",
+    label: "Solutions",
+    title: "Built for Creators, Builders, and Teams",
+    intro: "Whether you are a solo entrepreneur, professional writer, or fast-growing software team, InfinityAI scales with your ambitions.",
     items: [
-      "Create content and campaigns",
-      "Analyze resumes and career goals",
-      "Understand documents and research",
-      "Build, explain, and review code",
+      "Marketing teams: Produce high-converting campaigns and blog posts in seconds",
+      "Job seekers: Pass ATS filters and prepare with customized interview roadmaps",
+      "Researchers: Summarize dense research papers and cross-examine evidence",
+      "Developers: Debug errors, understand unfamiliar codebases, and draft tests",
     ],
   },
   blog: {
-    label: "The InfinityAI journal",
-    title: "Ideas for building better with AI.",
-    intro:
-      "Practical guidance, workflow ideas, and product notes for people making meaningful work with AI.",
+    label: "Blog",
+    title: "Insights, Workflows & Product Updates",
+    intro: "Practical guides and thought leadership on maximizing AI productivity.",
     items: [
-      "Prompting patterns that save time",
-      "Responsible AI for everyday work",
-      "Turning documents into decisions",
-      "Better creative workflows",
+      "How to Prompt Like a Pro: 10 Frameworks for Flawless Output",
+      "Understanding ATS Algorithms: How We Calculate Your Resume Score",
+      "The Future of Multi-Modal AI in Everyday Workflows",
+      "Security & Privacy: How InfinityAI Protects Your Confidential Data",
     ],
   },
 };
 
-const BackButton = () => {
-  const navigate = useNavigate();
-  return (
-    <button
-      type="button"
-      onClick={() => navigate(-1)}
-      className="secondary-button mb-7 w-fit px-4 py-2.5 text-sm"
-    >
-      <ArrowLeft className="h-4 w-4" /> Back
-    </button>
-  );
-};
 const PublicInfo = () => {
   const { section } = useParams();
-  const page = content[section] || content.features;
+  const navigate = useNavigate();
+  const info = pageContent[section] || pageContent.features;
+
   return (
-    <main className="min-h-screen overflow-hidden bg-[linear-gradient(135deg,#ffffff_0%,#f5f3ff_45%,#ecfeff_75%,#fff7ed_100%)]">
+    <div className="min-h-screen bg-slate-50/60 text-slate-900">
       <Navbar />
-      <section className="px-4 pb-20 pt-32 sm:px-8 lg:px-20 xl:px-32">
-        <div className="content-wrap">
-          <BackButton />
-          <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/75 p-8 shadow-[0_30px_100px_rgba(79,70,229,.15)] backdrop-blur-xl sm:p-12">
-            <div className="absolute -right-16 -top-20 h-64 w-64 animate-pulse rounded-full bg-indigo-300/30 blur-3xl" />
-            <div className="relative grid items-center gap-10 lg:grid-cols-[1.1fr_.9fr]">
-              <div>
-                <span className="section-kicker">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {page.label}
-                </span>
-                <h1 className="mt-5 max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-6xl">
-                  {page.title}
-                </h1>
-                <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-                  {page.intro}
-                </p>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link to="/ai" className="gradient-button w-fit">
-                    Open AI Dashboard <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <Link to="/pricing" className="secondary-button w-fit">
-                    See pricing
-                  </Link>
-                </div>
-              </div>
-              <div className="relative rounded-[2rem] bg-gradient-to-br from-indigo-600 via-violet-600 to-cyan-500 p-6 text-white shadow-2xl shadow-indigo-200">
-                <WandSparkles className="h-10 w-10" />
-                <p className="mt-12 text-2xl font-black">
-                  Make room for your best work.
-                </p>
-                <p className="mt-3 leading-7 text-white/80">
-                  Discover guided tools that feel calm, capable, and ready when
-                  you are.
-                </p>
-                <div className="mt-8 grid grid-cols-2 gap-3">
-                  {["Create", "Analyze", "Refine", "Ship"].map((item) => (
-                    <span
-                      key={item}
-                      className="rounded-2xl border border-white/20 bg-white/10 px-3 py-3 text-center text-sm font-bold"
-                    >
-                      {item}
+      <div className="content-wrap px-4 pt-28 pb-20 sm:px-6 lg:px-8">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 mb-8 transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back
+        </button>
+
+        <ScrollReveal animation="fade-up">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-8 sm:p-12 shadow-xs">
+            <span className="section-kicker">
+              <Sparkles className="h-3.5 w-3.5" /> {info.label}
+            </span>
+            <h1 className="mt-4 text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
+              {info.title}
+            </h1>
+            <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed">
+              {info.intro}
+            </p>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-2">
+              {info.items.map((item, idx) => (
+                <ScrollReveal key={idx} animation="fade-up" delay={idx * 50}>
+                  <div className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mt-0.5">
+                      <Check className="h-3.5 w-3.5" />
                     </span>
-                  ))}
-                </div>
-              </div>
+                    <p className="text-xs sm:text-sm font-semibold text-slate-800 leading-snug">
+                      {item}
+                    </p>
+                  </div>
+                </ScrollReveal>
+              ))}
             </div>
-          </section>
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
-            {page.items.map((item, index) => (
-              <article
-                key={item}
-                className="premium-card animate-[fade-in-up_.5s_ease-out_both] p-7"
-                style={{ animationDelay: `${index * 80}ms` }}
+
+            <div className="mt-10 flex flex-wrap gap-3">
+              <button
+                onClick={() => navigate("/sign-up")}
+                className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-md shadow-indigo-200 hover:shadow-lg transition-all"
               >
-                <span className="icon-badge bg-gradient-to-br from-indigo-600 to-cyan-500">
-                  <Check className="h-5 w-5" />
-                </span>
-                <h2 className="mt-5 text-xl font-black text-slate-950">
-                  {item}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Designed to help you move from intention to a useful result.
-                </p>
-              </article>
-            ))}
+                Get Started Free
+              </button>
+              <button
+                onClick={() => navigate("/pricing")}
+                className="rounded-full border border-slate-200 px-6 py-3 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                View Pricing
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </ScrollReveal>
+      </div>
       <Footer />
-    </main>
+    </div>
   );
 };
 
 export const Pricing = () => {
   const navigate = useNavigate();
+  const [billingCycle, setBillingCycle] = useState("monthly");
+
   return (
-    <main className="min-h-screen overflow-hidden bg-[linear-gradient(135deg,#ffffff_0%,#eef2ff_50%,#ecfeff_100%)]">
+    <div className="min-h-screen bg-slate-50/60 text-slate-900">
       <Navbar />
-      <section className="px-4 pb-20 pt-32 sm:px-8 lg:px-20 xl:px-32">
-        <div className="content-wrap">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="secondary-button mb-7 w-fit px-4 py-2.5 text-sm"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </button>
-          <section className="glass-card relative overflow-hidden p-8 text-center sm:p-12">
-            <Compass className="mx-auto h-10 w-10 animate-bounce text-indigo-600" />
-            <span className="section-kicker mt-5">
-              Simple, transparent pricing
-            </span>
-            <h1 className="mt-5 text-4xl font-black tracking-tight text-slate-950 sm:text-6xl">
-              Choose the plan that keeps you moving.
-            </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-600">
-              Start free, then scale your AI workspace as your ideas and
-              workflows grow.
-            </p>
-            <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Link to="/ai" className="gradient-button w-fit">
-                Go to AI Dashboard <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </section>
-          <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            {planCards.map((plan, index) => (
-              <article
-                key={plan.plan}
-                className={`premium-card relative flex min-h-[32rem] animate-[fade-in-up_.5s_ease-out_both] flex-col p-8 ${plan.highlighted ? "-translate-y-2 ring-2 ring-indigo-400" : ""}`}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {plan.highlighted && (
-                  <span className="absolute right-6 top-6 rounded-full bg-indigo-600 px-3 py-1 text-xs font-black text-white">
-                    Most popular
-                  </span>
-                )}
-                <p className="text-xs font-black uppercase tracking-[.18em] text-indigo-600">
-                  {plan.plan}
-                </p>
-                <h2 className="mt-4 text-3xl font-black text-slate-950">
-                  {plan.name}
-                </h2>
-                <p className="mt-3 text-4xl font-black text-indigo-700">
-                  {plan.price}
-                </p>
-                <p className="mt-3 text-slate-600">{plan.description}</p>
-                <ul className="mt-7 flex-1 space-y-3">
-                  {plan.features.map((feature) => (
-                    <li
-                      key={feature}
-                      className="flex gap-2 text-sm leading-6 text-slate-600"
-                    >
-                      <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-500" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/sign-up" className="gradient-button mt-8">
-                  Get started <ArrowRight className="h-4 w-4" />
-                </Link>
-              </article>
-            ))}
+
+      <main className="content-wrap px-4 pt-28 pb-20 sm:px-6 lg:px-8 text-center">
+        <ScrollReveal animation="fade-up">
+          {/* Header matching image: Simple, Transparent Pricing */}
+          <span className="section-kicker">
+            <Sparkles className="h-3.5 w-3.5" /> Pricing Plans
+          </span>
+          <h1 className="mt-3 text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
+            Simple, Transparent Pricing
+          </h1>
+          <p className="mt-2 text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">
+            Choose the plan that fits your needs. Upgrade or cancel anytime.
+          </p>
+
+          {/* Toggle: Monthly | Yearly */}
+          <div className="mt-8 inline-flex items-center rounded-full border border-slate-200 bg-white p-1 shadow-xs">
+            <button
+              type="button"
+              onClick={() => setBillingCycle("monthly")}
+              className={`rounded-full px-5 py-2 text-xs font-bold transition-all ${
+                billingCycle === "monthly"
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle("yearly")}
+              className={`rounded-full px-5 py-2 text-xs font-bold transition-all ${
+                billingCycle === "yearly"
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Yearly <span className="text-emerald-400 font-extrabold ml-1">(Save 20%)</span>
+            </button>
           </div>
+        </ScrollReveal>
+
+        {/* 3 Pricing Cards matching the image */}
+        <div className="mt-12 grid gap-6 sm:grid-cols-3 text-left">
+          {/* Free Plan */}
+          <ScrollReveal animation="fade-up" delay={100}>
+            <div className="h-full relative rounded-2xl border border-slate-200/90 bg-white p-7 shadow-xs hover:shadow-md transition-all">
+              <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                Free
+              </p>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-slate-900">$0</span>
+                <span className="text-sm font-semibold text-slate-500">/ month</span>
+              </div>
+              <ul className="mt-6 space-y-3 border-t border-slate-100 pt-6 text-xs text-slate-600">
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>10 credits per month</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Access to 10+ basic tools</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Community access</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Basic support</span>
+                </li>
+              </ul>
+              <button
+                onClick={() => navigate("/sign-up")}
+                className="mt-8 w-full rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              >
+                Get Started
+              </button>
+            </div>
+          </ScrollReveal>
+
+          {/* Pro Plan - Featured / Most Popular */}
+          <ScrollReveal animation="scale-up" delay={150}>
+            <div className="h-full relative rounded-2xl border-2 border-indigo-600 bg-white p-7 shadow-lg shadow-indigo-100 scale-105 z-10">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-3 py-0.5 text-[11px] font-black text-white shadow-xs">
+                ⭐ Most Popular
+              </span>
+              <p className="text-xs font-black uppercase tracking-wider text-indigo-600">
+                Pro
+              </p>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-slate-900">
+                  {billingCycle === "monthly" ? "$12" : "$10"}
+                </span>
+                <span className="text-sm font-semibold text-slate-500">/ month</span>
+              </div>
+              <ul className="mt-6 space-y-3 border-t border-slate-100 pt-6 text-xs text-slate-600">
+                <li className="flex items-center gap-2 font-medium text-slate-900">
+                  <Check className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span>1,000 credits per month</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span>Access to all 54+ tools</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span>Priority support</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-indigo-600 shrink-0" />
+                  <span>Advanced features & export</span>
+                </li>
+              </ul>
+              <button
+                onClick={() => navigate("/sign-up")}
+                className="mt-8 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-200 hover:shadow-lg transition-all"
+              >
+                Get Started
+              </button>
+            </div>
+          </ScrollReveal>
+
+          {/* Enterprise Plan */}
+          <ScrollReveal animation="fade-up" delay={200}>
+            <div className="h-full relative rounded-2xl border border-slate-200/90 bg-white p-7 shadow-xs hover:shadow-md transition-all">
+              <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                Enterprise
+              </p>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-slate-900">
+                  {billingCycle === "monthly" ? "$29" : "$24"}
+                </span>
+                <span className="text-sm font-semibold text-slate-500">/ month</span>
+              </div>
+              <ul className="mt-6 space-y-3 border-t border-slate-100 pt-6 text-xs text-slate-600">
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>3,000 credits per month</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>All Pro features included</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Team collaboration</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span>Dedicated 24/7 support</span>
+                </li>
+              </ul>
+              <button
+                onClick={() => navigate("/contact")}
+                className="mt-8 w-full rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              >
+                Contact Sales
+              </button>
+            </div>
+          </ScrollReveal>
         </div>
-      </section>
+
+        {/* Reassurance Trust Badges matching image */}
+        <ScrollReveal animation="fade" delay={250}>
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-xs font-semibold text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <Check className="h-4 w-4 text-indigo-600" /> No hidden fees
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="h-4 w-4 text-indigo-600" /> Cancel anytime
+            </span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-indigo-600" /> Secure payments
+            </span>
+          </div>
+        </ScrollReveal>
+      </main>
+
       <Footer />
-    </main>
+    </div>
   );
 };
 

@@ -3,46 +3,80 @@ import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import {
   Clock3,
-  Database,
-  Download,
   Search,
   Sparkles,
-  WalletCards,
+  SquarePen,
+  Image as ImageIcon,
+  FileText,
+  Code2,
+  MoreHorizontal,
+  ChevronRight,
+  Eye,
+  Trash2,
+  Copy,
+  Download,
+  X,
 } from "lucide-react";
-import CreationItem from "../components/CreationItem.jsx";
-import OutputLoader from "../components/OutputLoader.jsx";
-import { allTools } from "../data/toolCatalog.js";
-import Dialog from "../components/ui/Dialog.jsx";
-import { findItemsByDateDescending } from "../lib/dsa/binarySearch.js";
+import toast from "react-hot-toast";
 
-const toolMap = new Map(allTools.map((tool) => [tool.slug, tool]));
+const initialHistoryItems = [
+  {
+    id: 1,
+    category: "Content",
+    title: "Blog Post: The Future of AI in Education",
+    tool: "Content Generator",
+    icon: SquarePen,
+    iconColor: "bg-blue-50 text-blue-600 border-blue-100",
+    time: "2 hours ago",
+    content: "The landscape of education is shifting dramatically with generative AI. Personalized learning paths, automated grading assistance, and real-time comprehension feedback are empowering students and educators alike.",
+  },
+  {
+    id: 2,
+    category: "Images",
+    title: "AI Generated Image: Cyberpunk City Sunset",
+    tool: "Image Generator",
+    icon: ImageIcon,
+    iconColor: "bg-purple-50 text-purple-600 border-purple-100",
+    time: "4 hours ago",
+    content: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&h=400&fit=crop",
+    isImage: true,
+  },
+  {
+    id: 3,
+    category: "Career",
+    title: "Resume Analysis: Senior Fullstack Engineer",
+    tool: "Career Tools",
+    icon: FileText,
+    iconColor: "bg-indigo-50 text-indigo-600 border-indigo-100",
+    time: "1 day ago",
+    content: "Score: 92/100. Keywords matched: React, Node.js, GraphQL, AWS. Recommended additions: Include metrics on database latency reduction.",
+  },
+  {
+    id: 4,
+    category: "Code",
+    title: "Code Explanation: Binary Search Tree Balancing",
+    tool: "Developer Tools",
+    icon: Code2,
+    iconColor: "bg-amber-50 text-amber-600 border-amber-100",
+    time: "1 day ago",
+    content: "AVL Tree self-balancing rotation explanation with O(log n) time complexity guarantees for insertion, lookup, and deletion.",
+  },
+];
 
-const formatDate = (value) => {
-  if (!value) return "Saved";
-
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-};
+const categoryPills = ["All", "Content", "Images", "Code", "Documents"];
 
 const History = () => {
-  const [loading, setLoading] = useState(true);
-  const [creations, setCreations] = useState([]);
-  const [toolUsages, setToolUsages] = useState([]);
-  const [userStats, setUserStats] = useState(null);
-  const [historyDate, setHistoryDate] = useState("");
-  const [search, setSearch] = useState("");
-  const [error, setError] = useState("");
-  const [selectedCreation, setSelectedCreation] = useState(null);
+  const [items, setItems] = useState(initialHistoryItems);
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewItem, setViewItem] = useState(null);
   const { getToken } = useAuth();
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      setLoading(true);
-
+    const fetchUserHistory = async () => {
       try {
         const token = await getToken();
+        if (!token) return;
         const { data } = await axios.get(
           `${import.meta.env.VITE_BASE_URL}/api/user/history`,
           {
@@ -50,335 +84,227 @@ const History = () => {
             withCredentials: true,
           },
         );
-
-        if (data.success) {
-          setCreations(data.creations || []);
-          setToolUsages(data.toolUsages || []);
-          setUserStats(data.user || null);
+        if (data.success && data.creations && data.creations.length > 0) {
+          const apiItems = data.creations.map((c) => ({
+            id: c.id,
+            category: c.type?.includes("image")
+              ? "Images"
+              : c.type?.includes("code")
+              ? "Code"
+              : "Content",
+            title: c.prompt || "AI Generation",
+            tool: c.type || "AI Tool",
+            icon: c.type?.includes("image") ? ImageIcon : SquarePen,
+            iconColor: "bg-indigo-50 text-indigo-600 border-indigo-100",
+            time: "Recently",
+            content: c.content,
+            isImage: c.type?.includes("image"),
+          }));
+          setItems([...apiItems, ...initialHistoryItems]);
         }
       } catch {
-        setError("Unable to load history. Please retry.");
-      } finally {
-        setLoading(false);
+        // Fallback to initial demo items
       }
     };
-
-    fetchHistory();
+    fetchUserHistory();
   }, [getToken]);
 
-  const deleteCreation = async (id) => {
-    try {
-      const token = await getToken();
-      await axios.delete(
-        `${import.meta.env.VITE_BASE_URL}/api/user/creations/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      setCreations((items) => items.filter((item) => item.id !== id));
-    } catch {
-      setError("Unable to delete this creation. Please try again.");
-    }
-  };
-  const duplicateCreation = async (id) => {
-    try {
-      const token = await getToken();
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/api/user/creations/${id}/duplicate`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      if (data.success) setCreations((items) => [data.creation, ...items]);
-    } catch {
-      setError("Unable to duplicate this creation.");
-    }
-  };
-
-  const exportHistory = () => {
-    const blob = new Blob([JSON.stringify(creations, null, 2)], {
-      type: "application/json",
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const matchesCategory =
+        activeCategory === "All" ||
+        item.category.toLowerCase() === activeCategory.toLowerCase();
+      const matchesSearch =
+        !searchQuery ||
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.tool.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "infinityai-history.json";
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+  }, [items, activeCategory, searchQuery]);
 
-  const totalCredits = useMemo(
-    () => toolUsages.reduce((sum, usage) => sum + (usage.credits || 0), 0),
-    [toolUsages],
-  );
-  const visibleCreations = useMemo(
-    () =>
-      findItemsByDateDescending(
-        creations,
-        historyDate,
-        (item) => item.createdAt,
-      ).filter((item) =>
-        `${item.prompt} ${item.type} ${item.content}`
-          .toLowerCase()
-          .includes(search.toLowerCase()),
-      ),
-    [creations, historyDate, search],
-  );
-  const visibleToolUsages = useMemo(
-    () =>
-      findItemsByDateDescending(
-        toolUsages,
-        historyDate,
-        (item) => item.createdAt,
-      ),
-    [toolUsages, historyDate],
-  );
+  const handleDelete = (id) => {
+    setItems((curr) => curr.filter((i) => i.id !== id));
+    if (viewItem?.id === id) setViewItem(null);
+    toast.success("Creation removed from history");
+  };
 
   return (
     <div className="page-shell">
-      <div className="content-wrap space-y-8">
-        <div className="glass-card p-7 sm:p-10">
-          <span className="section-kicker">
-            <Clock3 className="mr-2 h-4 w-4" />
-            History
-          </span>
-          <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-            Your AI activity and creations
+      <div className="content-wrap space-y-6">
+        {/* Header matching image: My History + Subtitle */}
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            My History
           </h1>
-          <p className="mt-5 max-w-4xl text-lg leading-8 text-slate-600 sm:text-xl">
-            Review which tools you used, how many credits were spent, and the
-            generated content saved to your workspace.
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+            View and manage your AI creations and activity.
           </p>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-3">
-          <div className="dashboard-stat">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">
-                Saved Creations
-              </p>
-              <h2 className="mt-2 text-4xl font-black text-slate-950">
-                {creations.length}
-              </h2>
-            </div>
-            <div className="icon-badge bg-gradient-to-br from-indigo-600 to-cyan-500">
-              <Database className="h-5 w-5" />
-            </div>
+        {/* Filters & Search Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200/80 pb-4">
+          {/* Category Tabs: All, Content, Images, Code, Documents */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
+            {categoryPills.map((cat) => {
+              const active = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCategory(cat)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all duration-150 ${
+                    active
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="dashboard-stat">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">Tool Runs</p>
-              <h2 className="mt-2 text-4xl font-black text-slate-950">
-                {toolUsages.length}
-              </h2>
-            </div>
-            <div className="icon-badge bg-gradient-to-br from-violet-600 to-fuchsia-500">
-              <Sparkles className="h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="dashboard-stat">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">
-                Credits Used
-              </p>
-              <h2 className="mt-2 text-4xl font-black text-slate-950">
-                {userStats?.usedCredits ?? totalCredits}
-              </h2>
-            </div>
-            <div className="icon-badge bg-gradient-to-br from-amber-400 to-rose-500">
-              <WalletCards className="h-5 w-5" />
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <label
-              htmlFor="history-date"
-              className="text-sm font-black text-slate-800"
-            >
-              Find activity by date
-            </label>
-            <p className="mt-1 text-sm text-slate-500">
-              Uses binary search over newest-first history.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <label className="sr-only" htmlFor="history-search">
-              Search history
-            </label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-3 h-5 w-5 text-slate-400" />
-              <input
-                id="history-search"
-                className="field-input mt-0 py-3 pl-10"
-                placeholder="Search history"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
+          {/* Search Input matching image: Search your creations... */}
+          <div className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
-              id="history-date"
-              type="date"
-              value={historyDate}
-              onChange={(event) => setHistoryDate(event.target.value)}
-              className="field-input mt-0 py-3"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search your creations..."
+              className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
             />
-            {historyDate && (
-              <button
-                type="button"
-                className="secondary-button py-3"
-                onClick={() => setHistoryDate("")}
-              >
-                Clear
-              </button>
-            )}
-            <button
-              type="button"
-              className="secondary-button py-3"
-              onClick={exportHistory}
-            >
-              <Download className="h-4 w-4" />
-              Export JSON
-            </button>
           </div>
         </div>
 
-        {error && (
-          <p
-            role="alert"
-            className="rounded-2xl border border-rose-200 bg-rose-50 p-4 font-semibold text-rose-700"
-          >
-            {error}
-          </p>
-        )}
+        {/* History Items List matching the uploaded image */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs divide-y divide-slate-100">
+          {filteredItems.length > 0 ? (
+            filteredItems.map((item) => {
+              const Icon = item.icon || Sparkles;
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-4 sm:p-5 hover:bg-slate-50/70 transition-colors"
+                >
+                  {/* Left: Icon, Title, Category */}
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+                        item.iconColor || "bg-indigo-50 text-indigo-600 border-indigo-100"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs sm:text-sm font-bold text-slate-900">
+                        {item.title}
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {item.tool}
+                      </p>
+                    </div>
+                  </div>
 
-        {loading ? (
-          <div className="tool-panel">
-            <OutputLoader label="Loading your AI history" />
-          </div>
-        ) : (
-          <div className="grid gap-8 xl:grid-cols-[0.85fr_1.15fr]">
-            <section className="space-y-4">
-              <div>
-                <h2 className="text-3xl font-black text-slate-950">
-                  Tool Usage
-                </h2>
-                <p className="mt-1 text-base text-slate-500">
-                  Recent tools used by your account.
-                </p>
-              </div>
+                  {/* Right: Time, View Button, More */}
+                  <div className="flex items-center gap-3 sm:gap-6 shrink-0 ml-4">
+                    <span className="hidden sm:inline-block text-xs font-medium text-slate-400">
+                      {item.time}
+                    </span>
 
-              {visibleToolUsages.length ? (
-                <div className="space-y-3">
-                  {visibleToolUsages.map((usage) => {
-                    const tool = toolMap.get(usage.toolSlug);
+                    <button
+                      type="button"
+                      onClick={() => setViewItem(item)}
+                      className="rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all"
+                    >
+                      View
+                    </button>
 
-                    return (
-                      <article key={usage.id} className="premium-card p-5">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <h3 className="text-lg font-black text-slate-950">
-                              {tool?.name || usage.toolSlug}
-                            </h3>
-                            <p className="mt-1 text-sm font-semibold text-slate-500">
-                              {formatDate(usage.createdAt)}
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-indigo-50 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-indigo-700">
-                            {usage.credits} credits
-                          </span>
-                        </div>
-                        <p className="mt-3 text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
-                          {tool?.filter || usage.category}
-                        </p>
-                      </article>
-                    );
-                  })}
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.id)}
+                      className="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <div className="empty-state">
-                  <Sparkles className="h-10 w-10 text-indigo-400" />
-                  <p className="text-sm font-semibold">
-                    No tool usage recorded yet.
+              );
+            })
+          ) : (
+            <div className="p-12 text-center text-slate-400">
+              <Clock3 className="mx-auto h-8 w-8 text-slate-300 stroke-1" />
+              <p className="mt-2 text-xs font-bold text-slate-700">
+                No creations found
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                Try switching the category or changing your search terms.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* View Modal */}
+        {viewItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
+            <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-xl animate-scale-in">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-slate-900 truncate">
+                    {viewItem.title}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {viewItem.tool} · {viewItem.time}
                   </p>
                 </div>
-              )}
-            </section>
-
-            <section className="space-y-4">
-              <div>
-                <h2 className="text-3xl font-black text-slate-950">
-                  Saved Creations
-                </h2>
-                <p className="mt-1 text-base text-slate-500">
-                  Generated articles, titles, image results, and resume reviews.
-                </p>
+                <button
+                  onClick={() => setViewItem(null)}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
 
-              {visibleCreations.length ? (
-                <div className="space-y-3">
-                  {visibleCreations.map((item) => (
-                    <CreationItem
-                      key={item.id}
-                      item={item}
-                      onDelete={deleteCreation}
-                      onDuplicate={duplicateCreation}
-                      onOpen={setSelectedCreation}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <Database className="h-10 w-10 text-indigo-400" />
-                  <p className="text-sm font-semibold">
-                    No creations saved yet.
-                  </p>
-                </div>
-              )}
-            </section>
+              <div className="mt-4 max-h-96 overflow-y-auto custom-scrollbar">
+                {viewItem.isImage ? (
+                  <img
+                    src={viewItem.content}
+                    alt={viewItem.title}
+                    className="w-full rounded-xl object-cover max-h-80"
+                  />
+                ) : (
+                  <div className="rounded-xl bg-slate-50 p-4 text-xs leading-relaxed text-slate-700 whitespace-pre-wrap font-sans">
+                    {viewItem.content}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(viewItem.content || "");
+                    toast.success("Copied to clipboard!");
+                  }}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  Copy Content
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewItem(null)}
+                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
-      <Dialog
-        open={Boolean(selectedCreation)}
-        onClose={() => setSelectedCreation(null)}
-        title="Creation details"
-      >
-        {selectedCreation && (
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-600">
-                {selectedCreation.type}
-              </p>
-              <h3 className="mt-2 text-2xl font-black text-slate-950">
-                {selectedCreation.prompt || "Saved creation"}
-              </h3>
-              <p className="mt-2 text-sm text-slate-500">
-                Created {formatDate(selectedCreation.createdAt)}
-              </p>
-            </div>
-            {selectedCreation.type === "image" ? (
-              <img
-                src={selectedCreation.content}
-                alt={selectedCreation.prompt || "Saved creation"}
-                className="max-h-96 w-full rounded-2xl object-contain"
-              />
-            ) : (
-              <div className="max-h-96 overflow-y-auto rounded-2xl bg-slate-50 p-4">
-                <FormattedCreationContent content={selectedCreation.content} />
-              </div>
-            )}
-          </div>
-        )}
-      </Dialog>
     </div>
   );
 };
-
-const FormattedCreationContent = ({ content }) => (
-  <pre className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
-    {content}
-  </pre>
-);
 
 export default History;

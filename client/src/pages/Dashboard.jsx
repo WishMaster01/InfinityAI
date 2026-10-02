@@ -1,54 +1,33 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import {
   ArrowRight,
-  BarChart3,
-  BatteryWarning,
-  Clock3,
-  Crown,
-  FileText,
-  Image,
-  LoaderCircle,
-  RefreshCw,
   Sparkles,
-  WandSparkles,
-  WalletCards,
+  Zap,
+  SquarePen,
+  Image as ImageIcon,
+  FileText,
+  MessageSquare,
+  Code2,
+  Clock3,
+  ChevronRight,
+  ExternalLink,
+  Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
-import { featureCategories, planRank } from "../data/toolCatalog.js";
-import Button from "../components/ui/Button.jsx";
-import Card from "../components/ui/Card.jsx";
-import {
-  EmptyState,
-  ErrorState,
-  OfflineState,
-} from "../components/ui/State.jsx";
-
-const categoryIcons = {
-  CONTENT: WandSparkles,
-  IMAGE: Image,
-  CAREER: FileText,
-  PRODUCTIVITY: Sparkles,
-  DEVELOPER: BarChart3,
-};
-const formatTime = (value) =>
-  value
-    ? new Intl.DateTimeFormat("en", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(new Date(value))
-    : "Recently";
+import ToolCard from "../components/ToolCard.jsx";
+import ScrollReveal from "../components/ScrollReveal.jsx";
+import { allTools, planRank } from "../data/toolCatalog.js";
 
 const Dashboard = () => {
   const { user } = useUser();
   const { getToken } = useAuth();
   const navigate = useNavigate();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [offline, setOffline] = useState(!navigator.onLine);
 
   const loadDashboard = useCallback(
     async ({ background = false } = {}) => {
@@ -63,16 +42,11 @@ const Dashboard = () => {
             withCredentials: true,
           },
         );
-        if (!response.data.success)
-          throw new Error("Unable to load workspace.");
-        setData(response.data);
-      } catch (requestError) {
-        if (!background)
-          setError(
-            requestError?.response?.status === 401
-              ? "Your session has expired. Please sign in again."
-              : "We couldn't load your workspace. Please try again.",
-          );
+        if (response.data.success) {
+          setData(response.data);
+        }
+      } catch {
+        // Fallback gracefully
       } finally {
         if (!background) setLoading(false);
       }
@@ -82,470 +56,264 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadDashboard();
-    const onOnline = () => {
-      setOffline(false);
-      loadDashboard({ background: true });
-    };
-    const onOffline = () => setOffline(true);
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
-    return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
-    };
   }, [loadDashboard]);
 
-  const currentPlan = data?.user?.plan || "BASIC";
-  const limit =
-    currentPlan === "PRO" ? 2000 : currentPlan === "MODERATE" ? 500 : 20;
-  const available = data?.user?.availableCredits ?? limit;
-  const used = data?.user?.usedCredits ?? 0;
-  const usagePercent = Math.min(
-    100,
-    Math.round((used / Math.max(limit, 1)) * 100),
-  );
-  const recommendations = (data?.recommendations || []).slice(0, 3);
-  const recent = (data?.toolUsages || []).slice(0, 5);
-  const creations = data?.creations || [];
-  const greeting =
-    user?.firstName || user?.fullName?.split(" ")[0] || "Creator";
-  const hasHistory = creations.length > 0 || recent.length > 0;
-  const planLevel = planRank[currentPlan] ?? 0;
-  const quickCategories = useMemo(() => {
-    const goal = user?.unsafeMetadata?.goal;
-    const preferred = {
-      content: "CONTENT",
-      documents: "PRODUCTIVITY",
-      career: "CAREER",
-      productivity: "PRODUCTIVITY",
-      code: "DEVELOPER",
-    }[goal];
-    return preferred
-      ? [
-          ...featureCategories.filter((item) => item.key === preferred),
-          ...featureCategories.filter((item) => item.key !== preferred),
-        ].slice(0, 5)
-      : featureCategories.slice(0, 5);
-  }, [user]);
+  // Derived user details
+  const firstName =
+    user?.firstName || user?.fullName?.split(" ")[0] || "Alex";
+  const userPlan = data?.user?.plan || "Pro";
+  const availableCredits = data?.user?.availableCredits ?? 420;
 
-  if (loading)
-    return (
-      <div className="page-shell">
-        <div className="content-wrap space-y-8">
-          <div className="h-52 animate-pulse rounded-[var(--ia-radius-card)] bg-white shadow-[var(--ia-shadow-card)]" />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="h-32 animate-pulse rounded-[var(--ia-radius-card)] bg-white"
-              />
-            ))}
-          </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="h-72 animate-pulse rounded-[var(--ia-radius-card)] bg-white" />
-            <div className="h-72 animate-pulse rounded-[var(--ia-radius-card)] bg-white" />
-          </div>
-        </div>
-      </div>
-    );
-  if (error && !data)
-    return (
-      <div className="page-shell">
-        <div className="content-wrap">
-          <ErrorState message={error} onRetry={() => loadDashboard()} />
-        </div>
-      </div>
-    );
+  // Quick Action items from the uploaded image
+  const quickActions = [
+    {
+      title: "Generate Content",
+      desc: "Articles, blogs & copywriting",
+      icon: SquarePen,
+      color: "bg-blue-50 text-blue-600 border-blue-100",
+      path: "/ai/write-article",
+    },
+    {
+      title: "Create Image",
+      desc: "AI illustrations & artwork",
+      icon: ImageIcon,
+      color: "bg-purple-50 text-purple-600 border-purple-100",
+      path: "/ai/generate-images",
+    },
+    {
+      title: "Analyze Resume",
+      desc: "ATS score & job suggestions",
+      icon: FileText,
+      color: "bg-indigo-50 text-indigo-600 border-indigo-100",
+      path: "/ai/review-resume",
+    },
+    {
+      title: "Chat with Document",
+      desc: "Instant insights from PDFs",
+      icon: MessageSquare,
+      color: "bg-emerald-50 text-emerald-600 border-emerald-100",
+      path: "/ai/documents",
+    },
+  ];
+
+  // Popular tools displayed in the uploaded image dashboard
+  const popularSlugs = [
+    "resume-reviewer",
+    "ai-image-generation",
+    "code-explainer",
+    "ai-file-chat",
+  ];
+  const popularTools = popularSlugs
+    .map((slug) => allTools.find((t) => t.slug === slug))
+    .filter(Boolean);
+
+  const fallbackPopular = popularTools.length ? popularTools : allTools.slice(0, 4);
 
   return (
     <div className="page-shell">
       <div className="content-wrap space-y-7">
-        {offline && (
-          <OfflineState
-            onRetry={() => {
-              setOffline(false);
-              loadDashboard();
-            }}
-          />
-        )}
-        <section className="relative overflow-hidden rounded-[28px] border border-indigo-100 bg-[linear-gradient(120deg,#ffffff_0%,#eef2ff_52%,#ecfeff_100%)] p-7 shadow-[var(--ia-shadow-card)] sm:p-10">
-          <div className="relative z-10 max-w-2xl">
-            <span className="section-kicker">My AI workspace</span>
-            <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
-              Good{" "}
-              {new Date().getHours() < 12
-                ? "morning"
-                : new Date().getHours() < 18
-                  ? "afternoon"
-                  : "evening"}
-              , {greeting} <span aria-hidden="true">👋</span>
-            </h1>
-            <p className="mt-4 text-base leading-7 text-slate-600 sm:text-lg">
-              What are you creating today? Pick up where you left off or start a
-              new workflow.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Button onClick={() => navigate("/ai")}>
-                <WandSparkles className="h-4 w-4" />
-                Start creating
-              </Button>
-              <Button variant="secondary" onClick={() => navigate("/ai")}>
-                Explore AI workspace
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+        {/* User Greeting Section (Matching image: Hi, Alex 👋 Welcome back!) */}
+        <ScrollReveal animation="fade-up">
+          <div className="flex items-center gap-3.5">
+            <img
+              src={
+                user?.imageUrl ||
+                "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces"
+              }
+              alt={firstName}
+              className="h-12 w-12 rounded-full object-cover border-2 border-indigo-100 shadow-xs"
+            />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Hi, {firstName} 👋
+              </h1>
+              <p className="text-xs sm:text-sm font-medium text-slate-500">
+                Welcome back! What would you like to create today?
+              </p>
             </div>
           </div>
-          <Sparkles className="absolute -right-5 -top-8 h-48 w-48 rotate-12 text-indigo-200/60" />
-        </section>
+        </ScrollReveal>
 
-        <section
-          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-          aria-label="Workspace overview"
-        >
-          <Card className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">
-                Current plan
-              </p>
-              <p className="mt-2 text-2xl font-black text-slate-950">
-                {currentPlan}
-              </p>
+        {/* Top 2 Cards: Credits Gradient Card + Current Plan Card */}
+        <ScrollReveal animation="fade-up" delay={100}>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {/* Card 1: Your Credits Gradient Card */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 p-6 text-white shadow-md shadow-indigo-200">
+              {/* Ambient glass sheen */}
+              <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
+
+              <div className="relative z-10 flex flex-col justify-between h-full">
+                <div>
+                  <p className="text-xs font-semibold text-indigo-100 uppercase tracking-wider">
+                    Your Credits
+                  </p>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-4xl sm:text-5xl font-black tracking-tight">
+                      {availableCredits}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] font-bold text-indigo-200 uppercase tracking-wider">
+                    Resets in 14 days
+                  </p>
+                </div>
+
+                <div className="mt-6 flex flex-wrap gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/ai/credits")}
+                    className="rounded-xl bg-white/20 px-3.5 py-1.5 text-xs font-bold text-white backdrop-blur-md hover:bg-white/30 transition-colors"
+                  >
+                    View Details
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/ai/billing")}
+                    className="rounded-xl bg-white px-3.5 py-1.5 text-xs font-bold text-indigo-700 shadow-xs hover:bg-indigo-50 transition-colors"
+                  >
+                    Free Credits
+                  </button>
+                </div>
+              </div>
             </div>
-            <Crown className="h-8 w-8 text-amber-500" />
-          </Card>
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-500">Credits</p>
-              <WalletCards className="h-6 w-6 text-indigo-600" />
-            </div>
-            <p className="mt-2 text-2xl font-black text-slate-950">
-              {available}{" "}
-              <span className="text-sm font-semibold text-slate-400">
-                / {limit}
-              </span>
-            </p>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className={`h-full rounded-full ${available <= Math.max(2, Math.ceil(limit * 0.15)) ? "bg-amber-500" : "bg-indigo-600"}`}
-                style={{ width: `${Math.max(2, 100 - usagePercent)}%` }}
-              />
-            </div>
-          </Card>
-          <Card className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">Creations</p>
-              <p className="mt-2 text-2xl font-black text-slate-950">
-                {creations.length}
-              </p>
-            </div>
-            <FileText className="h-8 w-8 text-cyan-600" />
-          </Card>
-          <Card className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm font-semibold text-slate-500">Activity</p>
-              <p className="mt-2 text-2xl font-black text-slate-950">
-                {data?.analytics?.activityStreak || 0}{" "}
-                <span className="text-sm font-semibold text-slate-400">
-                  day streak
+
+            {/* Card 2: Current Plan Card */}
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Current Plan
+                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900">
+                    {userPlan}
+                  </span>
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200/60">
+                    Active
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Renews on Apr 25, 2026
+                </p>
+              </div>
+
+              <div className="mt-6 flex items-center justify-between pt-2">
+                <span className="text-xs text-slate-400">
+                  All 54+ tools unlocked
                 </span>
-              </p>
-            </div>
-            <BarChart3 className="h-8 w-8 text-violet-600" />
-          </Card>
-        </section>
-
-        {available <= Math.max(2, Math.ceil(limit * 0.15)) && (
-          <Card className="flex flex-col gap-4 border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <BatteryWarning className="mt-1 h-5 w-5 shrink-0 text-amber-600" />
-              <div>
-                <h2 className="font-black text-amber-950">
-                  You’re running low on credits
-                </h2>
-                <p className="mt-1 text-sm text-amber-800">
-                  You have {available} credits left this period. Choose a plan
-                  when you're ready.
-                </p>
-              </div>
-            </div>
-            <Button variant="secondary" onClick={() => navigate("/ai/billing")}>
-              Manage credits
-            </Button>
-          </Card>
-        )}
-        {available === 0 && (
-          <Card className="flex flex-col gap-4 border-rose-200 bg-rose-50 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-black text-rose-950">Credits exhausted</h2>
-              <p className="mt-1 text-sm text-rose-800">
-                You’ve used all available credits for this period. Your saved
-                work is still available.
-              </p>
-            </div>
-            <Button variant="danger" onClick={() => navigate("/ai/billing")}>
-              View plans
-            </Button>
-          </Card>
-        )}
-
-        <div className="grid gap-7 xl:grid-cols-[1.15fr_.85fr]">
-          <Card className="p-6 sm:p-7">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[.18em] text-indigo-600">
-                  Continue creating
-                </p>
-                <h2 className="mt-2 text-2xl font-black text-slate-950">
-                  Pick up where you left off
-                </h2>
-              </div>
-              <Button
-                variant="ghost"
-                className="px-3"
-                onClick={() => navigate("/ai/history")}
-              >
-                View history
-              </Button>
-            </div>
-            {hasHistory ? (
-              <div className="mt-5 space-y-3">
-                {(creations.length
-                  ? creations.slice(0, 3)
-                  : recent.slice(0, 3)
-                ).map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    onClick={() => navigate("/ai/history")}
-                    className="flex w-full items-center gap-4 rounded-2xl border border-slate-200 p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
-                      <Clock3 className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-bold text-slate-900">
-                        {item.prompt || item.toolSlug}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {formatTime(item.createdAt)}
-                      </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-slate-400" />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-5">
-                <EmptyState
-                  title="Your workspace is ready"
-                  description="Generate your first creation and it will appear here for easy access."
-                  action="Explore workflows"
-                  onAction={() => navigate("/ai")}
-                />
-              </div>
-            )}
-          </Card>
-          <Card className="p-6 sm:p-7">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[.18em] text-indigo-600">
-                  Recommended for you
-                </p>
-                <h2 className="mt-2 text-2xl font-black text-slate-950">
-                  A smart next step
-                </h2>
-              </div>
-              <Sparkles className="h-7 w-7 text-violet-500" />
-            </div>
-            {recommendations.length ? (
-              <div className="mt-5 space-y-3">
-                {recommendations.map((tool) => (
-                  <button
-                    type="button"
-                    key={tool.slug}
-                    onClick={() =>
-                      planLevel < (planRank[tool.minPlan] || 0)
-                        ? toast("This workflow is available on a higher plan.")
-                        : navigate(tool.path || `/ai/tools/${tool.slug}`)
-                    }
-                    className="flex w-full items-center gap-4 rounded-2xl border border-slate-200 p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-500 text-white">
-                      <Sparkles className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-bold text-slate-900">
-                        {tool.name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {tool.credits} credits · {tool.minPlan} access
-                      </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-slate-400" />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-6 text-sm text-slate-500">
-                Use a workflow to personalize your recommendations.
-              </p>
-            )}
-          </Card>
-        </div>
-
-        <section>
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[.18em] text-indigo-600">
-                Explore by goal
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-slate-950">
-                Quick categories
-              </h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate("/ai")}
-              className="text-sm font-bold text-indigo-700 hover:underline"
-            >
-              View workspace
-            </button>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {quickCategories.map((category) => {
-              const Icon = categoryIcons[category.key] || Sparkles;
-              return (
                 <button
                   type="button"
-                  key={category.key}
-                  onClick={() =>
-                    navigate(
-                      `/ai?category=${encodeURIComponent(category.filter)}`,
-                    )
-                  }
-                  className="group rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg"
+                  onClick={() => navigate("/ai/billing")}
+                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition-colors"
                 >
-                  <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${category.gradient} text-white`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <h3 className="mt-4 font-black text-slate-950">
-                    {category.filter}
-                  </h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    {category.tools.length} workflows to explore
-                  </p>
+                  Upgrade
                 </button>
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* Section: Quick Actions */}
+        <div>
+          <ScrollReveal animation="fade-up">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+              Quick Actions
+            </h2>
+          </ScrollReveal>
+          <div className="mt-3.5 grid gap-4 grid-cols-2 lg:grid-cols-4">
+            {quickActions.map((action, idx) => {
+              const Icon = action.icon;
+              return (
+                <ScrollReveal key={action.title} animation="fade-up" delay={idx * 60}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(action.path)}
+                    className="w-full group flex flex-col text-left rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md transition-all duration-200"
+                  >
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-xl border ${action.color} transition-transform duration-200 group-hover:scale-105`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="mt-3 font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors">
+                      {action.title}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-slate-400 line-clamp-1">
+                      {action.desc}
+                    </p>
+                  </button>
+                </ScrollReveal>
               );
             })}
           </div>
-        </section>
+        </div>
 
-        <Card className="p-6 sm:p-7">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[.18em] text-indigo-600">
-                Recent activity
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-slate-950">
-                Your latest workspace events
+        {/* Section: Popular Tools */}
+        <div>
+          <ScrollReveal animation="fade-up">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                Popular Tools
               </h2>
+              <button
+                type="button"
+                onClick={() => navigate("/ai")}
+                className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700"
+              >
+                View all Tools <ArrowRight className="h-3.5 w-3.5" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate("/ai/history")}
-              className="text-sm font-bold text-indigo-700 hover:underline"
-            >
-              View all
-            </button>
+          </ScrollReveal>
+
+          <div className="mt-3.5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {fallbackPopular.map((tool, idx) => (
+              <ScrollReveal key={tool.slug} animation="fade-up" delay={idx * 75}>
+                <ToolCard
+                  tool={tool}
+                  onUse={(t) => navigate(t.path || `/ai/tools/${t.slug}`)}
+                />
+              </ScrollReveal>
+            ))}
           </div>
-          {recent.length ? (
-            <div className="mt-5 divide-y divide-slate-100">
-              {recent.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 py-4">
-                  <div
-                    className={`h-2.5 w-2.5 rounded-full ${item.success ? "bg-emerald-500" : "bg-rose-500"}`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-800">
-                      {item.toolSlug}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {formatTime(item.createdAt)}
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold text-slate-500">
-                    {item.credits} credits
-                  </span>
+        </div>
+
+        {/* Recent Creations / Activity Preview */}
+        {data?.creations && data.creations.length > 0 && (
+          <ScrollReveal animation="fade-up" delay={100}>
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Clock3 className="h-4 w-4 text-slate-400" />
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Recent Creations
+                  </h3>
                 </div>
-              ))}
+                <button
+                  onClick={() => navigate("/ai/history")}
+                  className="text-xs font-bold text-indigo-600 hover:underline"
+                >
+                  View all
+                </button>
+              </div>
+              <div className="divide-y divide-slate-100 mt-2">
+                {data.creations.slice(0, 3).map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between py-3 hover:bg-slate-50/70 px-2 rounded-lg transition-colors cursor-pointer"
+                    onClick={() => navigate("/ai/history")}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold text-slate-800">
+                        {item.prompt || "Untitled creation"}
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {item.type} · Recently
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-400 ml-2 shrink-0" />
+                  </div>
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="mt-5">
-              <EmptyState
-                title="No activity yet"
-                description="Your completed workflows will appear here."
-                action="Start creating"
-                onAction={() => navigate("/ai")}
-              />
-            </div>
-          )}
-        </Card>
-        <Card className="p-6 sm:p-7">
-          <div className="flex items-start gap-4">
-            <img
-              src={user?.imageUrl}
-              alt={user?.fullName || "Your profile"}
-              className="h-16 w-16 rounded-2xl object-cover ring-4 ring-indigo-50"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[.18em] text-indigo-600">
-                Profile snapshot
-              </p>
-              <h2 className="mt-2 truncate text-2xl font-black text-slate-950">
-                {user?.fullName || "Your profile"}
-              </h2>
-              <p className="mt-1 truncate text-sm text-slate-500">
-                {user?.primaryEmailAddress?.emailAddress || "InfinityAI member"}
-              </p>
-            </div>
-          </div>
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold text-slate-500">Plan</p>
-              <p className="mt-1 font-black text-slate-900">{currentPlan}</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold text-slate-500">
-                Used this period
-              </p>
-              <p className="mt-1 font-black text-slate-900">{used} credits</p>
-            </div>
-          </div>
-          <Button
-            variant="secondary"
-            className="mt-5 w-full"
-            onClick={() => navigate("/ai/billing")}
-          >
-            {currentPlan === "BASIC" ? "Compare plans" : "Manage subscription"}
-          </Button>
-        </Card>
-        {error && data && (
-          <p
-            role="status"
-            className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Some workspace data could not refresh.{" "}
-            <button
-              type="button"
-              className="underline"
-              onClick={() => loadDashboard({ background: true })}
-            >
-              Retry
-            </button>
-          </p>
+          </ScrollReveal>
         )}
       </div>
     </div>

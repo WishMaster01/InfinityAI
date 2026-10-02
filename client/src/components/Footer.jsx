@@ -1,89 +1,135 @@
 import React from "react";
-import { ArrowUp, Sparkles } from "lucide-react";
-import { assets } from "../assets/assets.js";
+import { ArrowUp, Sparkles, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
+import InfinityLogo from "./InfinityLogo.jsx";
 
 const Footer = () => {
   return (
-    <footer className="w-full border-t border-indigo-100 bg-[linear-gradient(135deg,#ffffff_0%,#eef2ff_55%,#ecfeff_100%)] px-6 pt-16 text-slate-600 backdrop-blur-xl md:px-16 lg:px-24 xl:px-32">
-      <div className="mx-auto flex max-w-7xl flex-col justify-between gap-12 border-b border-slate-200 pb-10 md:flex-row">
-        <div className="md:max-w-xl">
-          <img
-            className="h-12 drop-shadow-sm md:h-16"
-            src={assets.infinityLogo}
-            alt="InfinityAI"
-          />
-          <p className="mt-7 max-w-xl text-base leading-8 text-slate-600">
-            <span className="font-semibold text-indigo-700">InfinityAI</span> is
-            The Ultimate All-in-One AI Platform for Content Creation, Image
-            Generation, Career Growth, Productivity, and Development.
-          </p>
-        </div>
+    <footer className="w-full border-t border-slate-200/80 bg-white px-6 pt-16 pb-12 text-slate-600 sm:px-10 lg:px-16">
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5 pb-12 border-b border-slate-100">
+          {/* Brand Column */}
+          <div className="lg:col-span-2">
+            <Link to="/">
+              <InfinityLogo size="md" />
+            </Link>
+            <p className="mt-4 text-xs sm:text-sm text-slate-500 max-w-sm leading-relaxed">
+              Your All-in-One AI Creation Platform. Create, build, analyze, and achieve more with 54+ powerful AI tools.
+            </p>
+            <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-slate-400">
+              <span>Crafted for creators & builders</span>
+            </div>
+          </div>
 
-        <div className="flex flex-1 flex-col items-start gap-10 sm:flex-row md:justify-end lg:gap-20">
+          {/* Product Links */}
           <div>
-            <h2 className="mb-5 text-xl font-black text-slate-950">Company</h2>
-            <ul className="space-y-3 text-base font-medium">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-4">
+              Product
+            </h3>
+            <ul className="space-y-2.5 text-xs font-medium text-slate-600">
               <li>
-                <Link className="hover:text-indigo-700" to={"/"}>
-                  Home
+                <Link to="/ai" className="hover:text-indigo-600 transition-colors">
+                  All 54+ AI Tools
                 </Link>
               </li>
               <li>
-                <Link className="hover:text-indigo-700" to={"/about"}>
-                  About us
+                <Link to="/pricing" className="hover:text-indigo-600 transition-colors">
+                  Pricing Plans
                 </Link>
               </li>
               <li>
-                <Link className="hover:text-indigo-700" to={"/contact"}>
-                  Contact us
+                <Link to="/ai/community" className="hover:text-indigo-600 transition-colors">
+                  Community Gallery
                 </Link>
               </li>
               <li>
-                <Link className="hover:text-indigo-700" to={"/privacy"}>
-                  Privacy policy
+                <Link to="/ai/documents" className="hover:text-indigo-600 transition-colors">
+                  Document Chat
                 </Link>
               </li>
               <li>
-                <Link className="hover:text-indigo-700" to="/terms">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link className="hover:text-indigo-700" to="/ai-disclaimer">
-                  AI Usage Disclaimer
+                <Link to="/dashboard" className="hover:text-indigo-600 transition-colors">
+                  Workspace
                 </Link>
               </li>
             </ul>
           </div>
 
-          <div className="max-w-md">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-indigo-100 px-3 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-indigo-700">
-              <Sparkles className="h-3.5 w-3.5" /> Build brighter
-            </div>
-            <h2 className="mb-5 text-2xl font-black leading-tight text-slate-950">
-              Build with practical AI
-            </h2>
-            <p className="max-w-lg leading-7 text-slate-600">
-              Explore the workspace to create content, analyze documents,
-              improve career materials, and work with code.
-            </p>
-            <Link className="secondary-button mt-5" to="/ai">
-              Open workspace
-            </Link>
+          {/* Resources */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-4">
+              Resources
+            </h3>
+            <ul className="space-y-2.5 text-xs font-medium text-slate-600">
+              <li>
+                <Link to="/blog" className="hover:text-indigo-600 transition-colors">
+                  Blog & Guides
+                </Link>
+              </li>
+              <li>
+                <Link to="/features" className="hover:text-indigo-600 transition-colors">
+                  Feature Highlights
+                </Link>
+              </li>
+              <li>
+                <Link to="/solutions" className="hover:text-indigo-600 transition-colors">
+                  Solutions by Role
+                </Link>
+              </li>
+              <li>
+                <Link to="/ai/help" className="hover:text-indigo-600 transition-colors">
+                  Help Center
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Company & Legal */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-4">
+              Legal & Support
+            </h3>
+            <ul className="space-y-2.5 text-xs font-medium text-slate-600">
+              <li>
+                <Link to="/about" className="hover:text-indigo-600 transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-indigo-600 transition-colors">
+                  Contact Support
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="hover:text-indigo-600 transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="hover:text-indigo-600 transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link to="/ai-disclaimer" className="hover:text-indigo-600 transition-colors">
+                  AI Disclaimer
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col items-center justify-between gap-4 pb-6 pt-5 text-sm text-slate-500 sm:flex-row md:text-base">
-        <p>Copyright 2026 © InfinityAI. All Rights Reserved.</p>
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="inline-flex items-center gap-2 font-bold text-indigo-700 hover:text-indigo-900"
-        >
-          Back to top <ArrowUp className="h-4 w-4" />
-        </button>
+        {/* Bottom copyright row */}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+          <p>© {new Date().getFullYear()} InfinityAI Platform. All rights reserved.</p>
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="inline-flex items-center gap-1.5 font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+          >
+            Back to top <ArrowUp className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
     </footer>
   );
